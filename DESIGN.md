@@ -418,6 +418,8 @@ volumes:
 
 ## Project Structure
 
+The tree below represents the intended project layout. As of `2026-05-06`, the repository includes the scaffold plus backend foundation files, but several feature-specific routers, services, and frontend routes listed here are still planned rather than implemented.
+
 ```
 containerscan/
 ├── docker-compose.yml
@@ -485,6 +487,16 @@ The **Print Sheet** view:
 ---
 
 ## Implementation Phases
+
+### Current Progress Snapshot
+
+As of `2026-05-06`, the repository has completed the initial backend foundation work:
+
+- Build task `1` is complete: repository scaffold, Docker Compose, Dockerfiles, and Nginx config exist.
+- Build task `2` is complete: FastAPI app bootstrap, config loading, database session wiring, and `/api/health` are in place.
+- Build task `3` is complete: SQLAlchemy models, Alembic setup, initial migration, constraints, indexes, and `search_vector` triggers exist.
+- Build task `4` is complete: unique dashed container code generation utility and tests for format and collision handling are implemented.
+- Frontend work remains at scaffold level with a placeholder landing page.
 
 | Phase | Deliverable |
 |---|---|
@@ -565,13 +577,13 @@ Use this as the first working week plan.
 
 #### Day 2: Stand Up the Backend Base
 
-- Complete task `4` by creating the FastAPI entry point, router registration pattern, config loading, and a health endpoint.
+- Complete task `2` by creating the FastAPI entry point, router registration pattern, config loading, and a health endpoint.
 - Decide on the backend package layout before adding feature code.
 - Make sure the backend container serves a simple JSON response through Nginx.
 
 #### Day 3: Define the Database Contract
 
-- Start tasks `2` and `3`.
+- Start tasks `3` and `4`.
 - Add SQLAlchemy, Alembic, and initial models for `rooms`, `labels`, `containers`, and `images` via `uv add`.
 - Implement the immutable dashed container code generation strategy before any container CRUD routes exist.
 - Create the first migration and verify PostgreSQL schema creation.
@@ -606,6 +618,8 @@ Use this as the first working week plan.
 
 ### 1. Repository and Compose Scaffold
 
+Status: complete as of `2026-05-06`.
+
 Responsible for establishing the base project structure and local runtime.
 
 - Create `backend/`, `frontend/`, and `deploy/` directories to match the documented layout.
@@ -615,7 +629,21 @@ Responsible for establishing the base project structure and local runtime.
 - Add environment variable handling for database connection, image storage path, and public base URL.
 - Set the backend up as a `uv`-managed Python project using `pyproject.toml` and `uv.lock`.
 
-### 2. Database Schema and Migration Setup
+### 2. FastAPI App Bootstrap
+
+Status: complete as of `2026-05-06`.
+
+Responsible for the backend application skeleton and shared infrastructure.
+
+- Create the FastAPI entry point and register routers.
+- Add configuration loading, database session management, and startup wiring.
+- Add shared error handling for missing records and invalid input.
+- Add a basic health endpoint for container-level diagnostics.
+- Establish backend developer tooling with `pytest` for tests, `ruff` for formatting and linting, and `ty` for type checking.
+
+### 3. Database Schema and Migration Setup
+
+Status: complete as of `2026-05-06`.
 
 Responsible for creating the persistent data model and schema evolution workflow.
 
@@ -625,7 +653,9 @@ Responsible for creating the persistent data model and schema evolution workflow
 - Add timestamps and foreign key relationships.
 - Add `search_vector` support and the trigger or generated-column strategy used to keep it updated.
 
-### 3. Unique Container Code Generation
+### 4. Unique Container Code Generation
+
+Status: complete as of `2026-05-06`.
 
 Responsible for generating stable, unique container codes.
 
@@ -633,16 +663,6 @@ Responsible for generating stable, unique container codes.
 - Check for collisions against existing records before insert completes.
 - Ensure generated codes are immutable after creation.
 - Add tests for collision handling and format validation.
-
-### 4. FastAPI App Bootstrap
-
-Responsible for the backend application skeleton and shared infrastructure.
-
-- Create the FastAPI entry point and register routers.
-- Add configuration loading, database session management, and startup wiring.
-- Add shared error handling for missing records and invalid input.
-- Add a basic health endpoint for container-level diagnostics.
-- Establish backend developer tooling with `pytest` for tests, `ruff` for formatting and linting, and `ty` for type checking.
 
 ### 5. Room CRUD API
 
