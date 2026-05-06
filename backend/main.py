@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from routers.containers import router as containers_router
 from routers.labels import router as labels_router
 from routers.rooms import router as rooms_router
 
@@ -17,3 +18,4 @@ def healthcheck() -> dict[str, str]:
 
 app.include_router(rooms_router)
 app.include_router(labels_router)
+app.include_router(containers_router)

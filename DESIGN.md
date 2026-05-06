@@ -37,6 +37,7 @@ A self-hosted, locally-run web service for managing QR codes linked to physical 
 - Assign containers to rooms for location tracking
 - Apply colour labels that render as a background behind printed QR codes
 - Search across all containers by name, description, room, label, or container code
+- Search by what is inside a container and recover its 4-character container code quickly
 - Scan a QR code with any device and view the container's contents via a mobile browser
 - Run everything locally on your LAN — no internet access required
 
@@ -67,6 +68,7 @@ This design document covers both the long-term target architecture and the curre
 | ✅ Goal | Assign containers to rooms |
 | ✅ Goal | Apply colour labels (rendered behind QR codes on print) |
 | ✅ Goal | Full-text search across containers including by container code |
+| ✅ Goal | Search by contents and retrieve the container's 4-character code from results |
 | ✅ Goal | Print-ready QR code output |
 | ✅ Goal | Mobile browser scanning (no native app needed) |
 | ✅ Goal | Fully local, LAN-only access |
@@ -174,6 +176,8 @@ This design document covers both the long-term target architecture and the curre
 
 > **Full-text search** is implemented using PostgreSQL's `tsvector` column on `containers`, updated via a trigger on `INSERT` and `UPDATE`. This enables fast search across container names, descriptions, and codes without a separate search engine.
 
+> In user-facing flows, the 4-character `code` is the practical identifier people use to locate and recognize a container. Users must be able to search either by that code directly or by the contents of the container and recover the code from the search results.
+
 ---
 
 ## API Endpoints
@@ -235,13 +239,14 @@ This design document covers both the long-term target architecture and the curre
 5. As a homeowner, I want to upload multiple photos for a container so that I can visually confirm its contents from my phone or desktop browser.
 6. As a homeowner, I want to reorder and caption container images so that the most useful photos appear first and have context.
 7. As a homeowner, I want to search containers by keyword or container code so that I can find a specific box quickly.
-8. As a homeowner, I want to filter containers by room or colour label so that I can narrow down large lists efficiently.
-9. As a homeowner, I want to open a container detail page and edit its metadata so that the system stays accurate over time.
-10. As a homeowner, I want to download a print-ready QR label for a container so that I can attach it to the physical box.
-11. As a homeowner, I want to print multiple QR labels on a single sheet so that label creation is efficient.
-12. As a person scanning a container, I want a QR code to open a mobile-friendly page on my local network so that I can inspect the container without installing an app.
-13. As a person scanning a container, I want to see the container code, name, room, description, and images immediately so that I can confirm I have the right container.
-14. As the system owner, I want the application to stay local-network-only so that my data is not exposed to the public internet.
+8. As a homeowner, I want to search by what is inside a container and see the container's 4-character code in the results so that I can identify the right box without scanning it first.
+9. As a homeowner, I want to filter containers by room or colour label so that I can narrow down large lists efficiently.
+10. As a homeowner, I want to open a container detail page and edit its metadata so that the system stays accurate over time.
+11. As a homeowner, I want to download a print-ready QR label for a container so that I can attach it to the physical box.
+12. As a homeowner, I want to print multiple QR labels on a single sheet so that label creation is efficient.
+13. As a person scanning a container, I want a QR code to open a mobile-friendly page on my local network so that I can inspect the container without installing an app.
+14. As a person scanning a container, I want to see the container code, name, room, description, and images immediately so that I can confirm I have the right container.
+15. As the system owner, I want the application to stay local-network-only so that my data is not exposed to the public internet.
 
 ---
 
@@ -274,9 +279,10 @@ This design document covers both the long-term target architecture and the curre
 ### Searching for Items
 
 1. Use the search bar at the top of the admin UI
-2. Type any keyword or container code — results filter in real time
+2. Type any keyword describing what is in the container, or type the 4-character container code directly
 3. Optionally filter results by **room** or **colour label** using the sidebar filters
-4. Click a result to open the container detail page
+4. Review the matching results, each of which shows the container's 4-character code prominently
+5. Click a result to open the container detail page
 
 ### Scanning a QR Code
 
@@ -332,6 +338,7 @@ Each printed QR label is rendered as a tile with three visual layers:
 - Search bar (real-time full-text search including container code)
 - Filter sidebar: filter by room, filter by colour label
 - Container grid/list with thumbnail preview, 4-letter code badge, room badge, and colour label indicator
+- Search results must surface the 4-character container code clearly so users can identify a box from its contents without opening it
 - Create, edit, and delete containers
 - Inline room and label management
 - Built with Skeleton primitives and themed to favour legibility on desktop while remaining touch-friendly on tablets
@@ -418,7 +425,7 @@ volumes:
 
 ## Project Structure
 
-The tree below represents the intended project layout. As of `2026-05-06`, the repository includes the scaffold, backend foundation files, shared schemas, and the first reference-data routers, but several container-specific services and frontend routes listed here are still planned rather than implemented.
+The tree below represents the intended project layout. As of `2026-05-06`, the repository includes the scaffold, backend foundation files, shared schemas, reference-data routers, and the core container router, but image handling, QR rendering, search/filter behavior, and most frontend routes listed here are still planned rather than implemented.
 
 ```
 containerscan/
@@ -490,7 +497,7 @@ The **Print Sheet** view:
 
 ### Current Progress Snapshot
 
-As of `2026-05-06`, the repository has completed the initial backend foundation work plus the first reference-data API slice:
+As of `2026-05-06`, the repository has completed the backend foundation, reference-data APIs, and the core container CRUD slice:
 
 - Build task `1` is complete: repository scaffold, Docker Compose, Dockerfiles, and Nginx config exist.
 - Build task `2` is complete: FastAPI app bootstrap, config loading, database session wiring, and `/api/health` are in place.
@@ -498,6 +505,8 @@ As of `2026-05-06`, the repository has completed the initial backend foundation 
 - Build task `4` is complete: unique dashed container code generation utility and tests for format and collision handling are implemented.
 - Build task `5` is complete: room CRUD API routes, shared schemas, validation, and backend tests are implemented.
 - Build task `6` is complete: label CRUD API routes, hex-colour validation, and backend tests are implemented.
+- Build task `7` is complete: container create, list, detail, update, delete, and code-lookup routes are implemented with room/label validation and backend tests.
+- Build task `8` is the next backend task: add search and filtering to `GET /api/containers`.
 - Frontend work remains at scaffold level with a placeholder landing page.
 
 | Phase | Deliverable |
@@ -686,13 +695,15 @@ Responsible for colour label management.
 
 ### 7. Container CRUD API
 
+Status: complete as of `2026-05-06`.
+
 Responsible for the core container lifecycle.
 
 - Implement container create, list, detail, update, and delete endpoints.
 - Generate the immutable container code during create.
 - Support room and label assignment through foreign keys.
 - Return image metadata with container detail responses.
-- Ensure deletes also clean up related image records and stored files.
+- Ensure deletes also clean up related image records and, once task `9` exists, stored files.
 
 ### 8. Search and Filtering
 
@@ -700,6 +711,7 @@ Responsible for searchable container listing.
 
 - Extend `GET /api/containers` to support `search`, `room_id`, `label_id`, and `code` filters.
 - Use PostgreSQL full-text search for name, description, and code matching.
+- Ensure search results clearly return and display each matching container's 4-character code so users can search by contents and recover the identifier they need.
 - Support combined filters in a single query.
 - Add indexes and query tests so search remains responsive with larger datasets.
 

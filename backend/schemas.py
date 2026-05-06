@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class APIModel(BaseModel):
@@ -66,3 +66,52 @@ class LabelRead(APIModel):
     name: str
     colour: str
     created_at: datetime
+
+
+class ContainerBase(BaseModel):
+    name: str
+    description: str = ""
+    room_id: uuid.UUID
+    label_id: uuid.UUID
+
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Name must not be empty.")
+        return normalized
+
+    @field_validator("description")
+    @classmethod
+    def normalize_description(cls, value: str) -> str:
+        return value.strip()
+
+
+class ContainerCreate(ContainerBase):
+    pass
+
+
+class ContainerUpdate(ContainerBase):
+    pass
+
+
+class ImageRead(APIModel):
+    id: uuid.UUID
+    container_id: uuid.UUID
+    filename: str
+    uploaded_at: datetime
+    caption: str | None
+    sort_order: int
+
+
+class ContainerRead(APIModel):
+    id: uuid.UUID
+    code: str
+    name: str
+    description: str
+    room_id: uuid.UUID
+    label_id: uuid.UUID
+    created_at: datetime
+    updated_at: datetime
+    images: list[ImageRead] = Field(default_factory=list)
