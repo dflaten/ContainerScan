@@ -1,5 +1,8 @@
 from fastapi import FastAPI
 
+from routers.labels import router as labels_router
+from routers.rooms import router as rooms_router
+
 
 app = FastAPI(
     title="ContainerScan API",
@@ -10,3 +13,7 @@ app = FastAPI(
 @app.get("/api/health")
 def healthcheck() -> dict[str, str]:
     return {"status": "ok"}
+
+
+app.include_router(rooms_router)
+app.include_router(labels_router)
