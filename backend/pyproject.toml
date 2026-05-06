@@ -1,0 +1,23 @@
+[project]
+name = "containerscan-backend"
+version = "0.1.0"
+description = "Backend API for the ContainerScan LAN-only application."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115,<1.0",
+  "uvicorn[standard]>=0.34,<1.0",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.0,<9.0",
+  "ruff>=0.11,<1.0",
+  "ty>=0.0.1a16",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100

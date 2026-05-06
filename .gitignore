@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+
+node_modules/
+.svelte-kit/
+dist/
+build/
+
+.DS_Store

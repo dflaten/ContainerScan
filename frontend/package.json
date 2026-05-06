@@ -1,0 +1,21 @@
+{
+  "name": "containerscan-frontend",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite dev",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/adapter-node": "5.5.4",
+    "@sveltejs/kit": "2.59.1",
+    "@sveltejs/vite-plugin-svelte": "7.1.1",
+    "svelte": "5.55.5",
+    "vite": "8.0.10"
+  },
+  "dependencies": {
+    "@skeletonlabs/skeleton": "4.15.2"
+  }
+}
