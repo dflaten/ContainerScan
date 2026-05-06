@@ -45,14 +45,14 @@ def upgrade() -> None:
         sa.Column("code", sa.CHAR(length=5), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("description", sa.Text(), server_default=sa.text("''"), nullable=False),
-        sa.Column("room_id", postgresql.UUID(as_uuid=True), nullable=True),
-        sa.Column("label_id", postgresql.UUID(as_uuid=True), nullable=True),
+        sa.Column("room_id", postgresql.UUID(as_uuid=True), nullable=False),
+        sa.Column("label_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("search_vector", postgresql.TSVECTOR(), server_default=sa.text("''::tsvector"), nullable=False),
         sa.CheckConstraint(r"code ~ '^[A-Z0-9]{2}-[A-Z0-9]{2}$'", name="ck_containers_code_format"),
-        sa.ForeignKeyConstraint(["label_id"], ["labels.id"], ondelete="SET NULL"),
-        sa.ForeignKeyConstraint(["room_id"], ["rooms.id"], ondelete="SET NULL"),
+        sa.ForeignKeyConstraint(["label_id"], ["labels.id"], ondelete="RESTRICT"),
+        sa.ForeignKeyConstraint(["room_id"], ["rooms.id"], ondelete="RESTRICT"),
         sa.PrimaryKeyConstraint("id"),
         sa.UniqueConstraint("code"),
     )
@@ -114,6 +114,19 @@ def upgrade() -> None:
 
     op.execute(
         """
+        CREATE FUNCTION prevent_container_code_update() RETURNS trigger AS $$
+        BEGIN
+            IF NEW.code IS DISTINCT FROM OLD.code THEN
+                RAISE EXCEPTION 'container code is immutable once created';
+            END IF;
+            RETURN NEW;
+        END;
+        $$ LANGUAGE plpgsql;
+        """
+    )
+
+    op.execute(
+        """
         CREATE TRIGGER trg_containers_search_vector
         BEFORE INSERT OR UPDATE OF code, name, description
         ON containers
@@ -133,6 +146,15 @@ def upgrade() -> None:
 
     op.execute(
         """
+        CREATE TRIGGER trg_containers_immutable_code
+        BEFORE UPDATE OF code ON containers
+        FOR EACH ROW
+        EXECUTE FUNCTION prevent_container_code_update();
+        """
+    )
+
+    op.execute(
+        """
         UPDATE containers
         SET search_vector =
             setweight(to_tsvector('simple', coalesce(code, '')), 'A') ||
@@ -143,8 +165,10 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    op.execute("DROP TRIGGER IF EXISTS trg_containers_immutable_code ON containers;")
     op.execute("DROP TRIGGER IF EXISTS trg_containers_updated_at ON containers;")
     op.execute("DROP TRIGGER IF EXISTS trg_containers_search_vector ON containers;")
+    op.execute("DROP FUNCTION IF EXISTS prevent_container_code_update();")
     op.execute("DROP FUNCTION IF EXISTS set_updated_at_timestamp();")
     op.execute("DROP FUNCTION IF EXISTS containers_search_vector_update();")
 
