@@ -7,6 +7,7 @@ A self-hosted, locally-run web service for managing QR codes linked to physical 
 ## Table of Contents
 
 - [Overview](#overview)
+- [Development vs Deployment Scope](#development-vs-deployment-scope)
 - [Goals & Non-Goals](#goals--non-goals)
 - [Architecture](#architecture)
 - [Tech Stack](#tech-stack)
@@ -40,6 +41,18 @@ A self-hosted, locally-run web service for managing QR codes linked to physical 
 - Run everything locally on your LAN — no internet access required
 
 ContainerScan is intentionally LAN-only in its initial version: the frontend, API, and scan views are reachable only from the local network and are not intended to be exposed to the public internet.
+
+---
+
+## Development vs Deployment Scope
+
+This design document covers both the long-term target architecture and the current implementation plan, but those are not the same thing operationally.
+
+- The current working phase is **development-focused**. Commands, scripts, and tooling added early in the project are allowed to optimize for local developer productivity, fast iteration, and testing.
+- Early project commands may assume a developer machine, a checked-out repository, and direct use of Docker Compose, `uv`, npm, or Make targets.
+- The final **server/runtime workflow** is a separate concern and is intentionally deferred until the application features and deployment requirements are stable enough to justify hardening.
+- Production-style startup commands, service management, backup procedures, host setup steps, and repeatable LAN deployment instructions will be defined later as part of deployment-focused work, especially task `21` (**LAN Deployment Documentation**).
+- Until that later phase is complete, development commands should not be treated as the final operational contract for running ContainerScan on its target server.
 
 ---
 

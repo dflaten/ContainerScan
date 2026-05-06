@@ -11,7 +11,7 @@ services:
   backend:
     build: ./backend
     environment:
-      DATABASE_URL: postgresql://cs_user:cs_pass@db:5432/containerscan
+      DATABASE_URL: postgresql+psycopg://cs_user:cs_pass@db:5432/containerscan
       IMAGE_STORAGE_PATH: /app/images
       PUBLIC_BASE_URL: http://containerscan.local
     volumes:
