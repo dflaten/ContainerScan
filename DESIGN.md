@@ -418,7 +418,7 @@ volumes:
 
 ## Project Structure
 
-The tree below represents the intended project layout. As of `2026-05-06`, the repository includes the scaffold plus backend foundation files, but several feature-specific routers, services, and frontend routes listed here are still planned rather than implemented.
+The tree below represents the intended project layout. As of `2026-05-06`, the repository includes the scaffold, backend foundation files, shared schemas, and the first reference-data routers, but several container-specific services and frontend routes listed here are still planned rather than implemented.
 
 ```
 containerscan/
@@ -490,12 +490,14 @@ The **Print Sheet** view:
 
 ### Current Progress Snapshot
 
-As of `2026-05-06`, the repository has completed the initial backend foundation work:
+As of `2026-05-06`, the repository has completed the initial backend foundation work plus the first reference-data API slice:
 
 - Build task `1` is complete: repository scaffold, Docker Compose, Dockerfiles, and Nginx config exist.
 - Build task `2` is complete: FastAPI app bootstrap, config loading, database session wiring, and `/api/health` are in place.
 - Build task `3` is complete: SQLAlchemy models, Alembic setup, initial migration, constraints, indexes, and `search_vector` triggers exist.
 - Build task `4` is complete: unique dashed container code generation utility and tests for format and collision handling are implemented.
+- Build task `5` is complete: room CRUD API routes, shared schemas, validation, and backend tests are implemented.
+- Build task `6` is complete: label CRUD API routes, hex-colour validation, and backend tests are implemented.
 - Frontend work remains at scaffold level with a placeholder landing page.
 
 | Phase | Deliverable |
