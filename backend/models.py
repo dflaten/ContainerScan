@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CHAR, DateTime, ForeignKey, Index, Integer, String, Text, func, text
+from sqlalchemy import CHAR, CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, func, text
 from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,6 +26,9 @@ class Room(Base):
 
 class Label(Base):
     __tablename__ = "labels"
+    __table_args__ = (
+        CheckConstraint(r"colour ~ '^#[0-9A-Fa-f]{6}$'", name="ck_labels_colour_hex"),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
@@ -42,13 +45,14 @@ class Label(Base):
 class Container(Base):
     __tablename__ = "containers"
     __table_args__ = (
+        CheckConstraint(r"code ~ '^[A-Z0-9]{2}-[A-Z0-9]{2}$'", name="ck_containers_code_format"),
         Index("ix_containers_search_vector", "search_vector", postgresql_using="gin"),
         Index("ix_containers_room_id", "room_id"),
         Index("ix_containers_label_id", "label_id"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    code: Mapped[str] = mapped_column(CHAR(4), unique=True, nullable=False)
+    code: Mapped[str] = mapped_column(CHAR(5), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
     room_id: Mapped[uuid.UUID | None] = mapped_column(

@@ -42,7 +42,7 @@ def upgrade() -> None:
     op.create_table(
         "containers",
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
-        sa.Column("code", sa.CHAR(length=4), nullable=False),
+        sa.Column("code", sa.CHAR(length=5), nullable=False),
         sa.Column("name", sa.String(length=255), nullable=False),
         sa.Column("description", sa.Text(), server_default=sa.text("''"), nullable=False),
         sa.Column("room_id", postgresql.UUID(as_uuid=True), nullable=True),
@@ -50,7 +50,7 @@ def upgrade() -> None:
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("updated_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
         sa.Column("search_vector", postgresql.TSVECTOR(), server_default=sa.text("''::tsvector"), nullable=False),
-        sa.CheckConstraint(r"code ~ '^[A-Z]{4}$'", name="ck_containers_code_format"),
+        sa.CheckConstraint(r"code ~ '^[A-Z0-9]{2}-[A-Z0-9]{2}$'", name="ck_containers_code_format"),
         sa.ForeignKeyConstraint(["label_id"], ["labels.id"], ondelete="SET NULL"),
         sa.ForeignKeyConstraint(["room_id"], ["rooms.id"], ondelete="SET NULL"),
         sa.PrimaryKeyConstraint("id"),

@@ -31,12 +31,12 @@ A self-hosted, locally-run web service for managing QR codes linked to physical 
 **ContainerScan** lets you:
 
 - Generate and print QR codes linked to physical containers
-- Each container is assigned a unique **4-letter code** displayed prominently on its label
+- Each container is assigned a unique **4-character container code** displayed prominently on its label
 - Upload and associate images with each container
 - Write and update rich descriptions per container
 - Assign containers to rooms for location tracking
 - Apply colour labels that render as a background behind printed QR codes
-- Search across all containers by name, description, room, label, or 4-letter code
+- Search across all containers by name, description, room, label, or container code
 - Scan a QR code with any device and view the container's contents via a mobile browser
 - Run everything locally on your LAN — no internet access required
 
@@ -61,12 +61,12 @@ This design document covers both the long-term target architecture and the curre
 | | Detail |
 |---|---|
 | ✅ Goal | Create and manage QR codes for physical containers |
-| ✅ Goal | Auto-generate a unique 4-letter code per container for quick identification |
+| ✅ Goal | Auto-generate a unique 4-character container code per container for quick identification |
 | ✅ Goal | Upload and update images per container |
 | ✅ Goal | Editable description field per container |
 | ✅ Goal | Assign containers to rooms |
 | ✅ Goal | Apply colour labels (rendered behind QR codes on print) |
-| ✅ Goal | Full-text search across containers including by 4-letter code |
+| ✅ Goal | Full-text search across containers including by container code |
 | ✅ Goal | Print-ready QR code output |
 | ✅ Goal | Mobile browser scanning (no native app needed) |
 | ✅ Goal | Fully local, LAN-only access |
@@ -150,7 +150,7 @@ This design document covers both the long-term target architecture and the curre
 | Column | Type | Description |
 |---|---|---|
 | `id` | UUID (PK) | Unique container identifier |
-| `code` | CHAR(4) | Auto-generated unique 4-letter code (e.g. `KXBT`), immutable after creation |
+| `code` | CHAR(5) | Auto-generated unique 4-character container code with a middle dash (e.g. `KX-B7`), immutable after creation |
 | `name` | VARCHAR | Human-readable label (e.g. "Garage Box 3") |
 | `description` | TEXT | Editable free-text description of contents |
 | `room_id` | UUID (FK) | Assigned room → `rooms.id` |
@@ -159,7 +159,7 @@ This design document covers both the long-term target architecture and the curre
 | `updated_at` | TIMESTAMP | Last updated date |
 | `search_vector` | TSVECTOR | PostgreSQL full-text search index (name + description + code) |
 
-> The `code` column is a unique, auto-generated 4-character uppercase alphabetic code assigned at container creation. It is indexed for fast lookup, included in search, and remains stable for the life of the container so printed labels do not become misleading.
+> The `code` column is a unique, auto-generated 4-character uppercase alphanumeric code with a dash in the middle (for example `KX-B7`) assigned at container creation. It is indexed for fast lookup, included in search, and remains stable for the life of the container so printed labels do not become misleading.
 
 ### `images`
 
@@ -203,7 +203,7 @@ This design document covers both the long-term target architecture and the curre
 | `GET` | `/api/containers` | List all containers (supports `?search=`, `?room_id=`, `?label_id=`, `?code=`) |
 | `POST` | `/api/containers` | Create a new container (code auto-generated) |
 | `GET` | `/api/containers/{id}` | Get container details + images |
-| `GET` | `/api/containers/code/{code}` | Look up a container directly by 4-letter code |
+| `GET` | `/api/containers/code/{code}` | Look up a container directly by container code |
 | `PUT` | `/api/containers/{id}` | Update name, description, room, or label |
 | `DELETE` | `/api/containers/{id}` | Delete container and its images |
 
@@ -219,7 +219,7 @@ This design document covers both the long-term target architecture and the curre
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/api/containers/{id}/qr` | Download print-ready QR PNG (with label colour background and 4-letter code header) |
+| `GET` | `/api/containers/{id}/qr` | Download print-ready QR PNG (with label colour background and container code header) |
 | `GET` | `/scan/{id}` | Public scan landing page (mobile-optimised) |
 
 > Search is handled through `GET /api/containers` with `search`, `room_id`, `label_id`, and `code` query parameters. A separate `/api/search` endpoint is not required.
@@ -228,13 +228,13 @@ This design document covers both the long-term target architecture and the curre
 
 ## User Stories
 
-1. As a homeowner, I want to create a container with a generated 4-letter code so that I can label and identify it quickly.
+1. As a homeowner, I want to create a container with a generated container code so that I can label and identify it quickly.
 2. As a homeowner, I want to assign a container to a room so that I know where it is stored.
 3. As a homeowner, I want to apply a colour label to a container so that related containers are easier to recognise at a glance.
 4. As a homeowner, I want to write and edit a description for a container so that I can record what is inside without opening it.
 5. As a homeowner, I want to upload multiple photos for a container so that I can visually confirm its contents from my phone or desktop browser.
 6. As a homeowner, I want to reorder and caption container images so that the most useful photos appear first and have context.
-7. As a homeowner, I want to search containers by keyword or 4-letter code so that I can find a specific box quickly.
+7. As a homeowner, I want to search containers by keyword or container code so that I can find a specific box quickly.
 8. As a homeowner, I want to filter containers by room or colour label so that I can narrow down large lists efficiently.
 9. As a homeowner, I want to open a container detail page and edit its metadata so that the system stays accurate over time.
 10. As a homeowner, I want to download a print-ready QR label for a container so that I can attach it to the physical box.
@@ -254,13 +254,13 @@ This design document covers both the long-term target architecture and the curre
 3. Select a **room** from the dropdown (or create one inline)
 4. Select a **colour label** from the dropdown (or create one inline)
 5. Upload one or more photos of the container's contents
-6. Click **Save** — a unique 4-letter code is automatically assigned
+6. Click **Save** — a unique container code is automatically assigned
 
 ### Printing a QR Code
 
 1. Open a container from the admin list
 2. Click **Download QR Code** → saves a PNG with:
-   - The 4-letter code displayed at the top in large bold text
+   - The container code displayed at the top in large bold text
    - The label colour as the tile background
    - The container name and room printed below the QR code
 3. Print and attach to the physical container
@@ -269,12 +269,12 @@ This design document covers both the long-term target architecture and the curre
 
 1. Open a container from the admin list or search results
 2. Edit the description, swap the room or label, add/remove/reorder images
-3. Click **Save** — the QR code URL and 4-letter code remain unchanged; no reprinting needed
+3. Click **Save** — the QR code URL and container code remain unchanged; no reprinting needed
 
 ### Searching for Items
 
 1. Use the search bar at the top of the admin UI
-2. Type any keyword or 4-letter code — results filter in real time
+2. Type any keyword or container code — results filter in real time
 3. Optionally filter results by **room** or **colour label** using the sidebar filters
 4. Click a result to open the container detail page
 
@@ -283,7 +283,7 @@ This design document covers both the long-term target architecture and the curre
 1. Point your phone camera at the QR code on the container
 2. Phone opens `http://containerscan.local/scan/{container-id}`
 3. Browser displays:
-   - 4-letter code and container name (with label colour as a header background)
+   - Container code and container name (with label colour as a header background)
    - Room location
    - Description
    - Full-resolution scrollable image gallery
@@ -304,7 +304,7 @@ Each printed QR label is rendered as a tile with three visual layers:
 
 ```
 ┌─────────────────────┐
-│        KXBT         │  ← 4-letter code (large, bold, centred)
+│       KX-B7         │  ← container code (large, bold, centred)
 ├─────────────────────┤
 │                     │
 │     [QR CODE]       │  ← QR code module
@@ -316,10 +316,10 @@ Each printed QR label is rendered as a tile with three visual layers:
         ████           ← Label colour background behind entire tile
 ```
 
-- The **4-letter code** appears at the top of every label in large bold text
+- The **container code** appears at the top of every label in large bold text
 - The **label colour** fills the entire tile background
 - The **container name** and **room** appear below the QR code
-- The code allows quick verbal or visual identification without scanning (e.g. "which box is this?" → "it's KXBT")
+- The code allows quick verbal or visual identification without scanning (e.g. "which box is this?" → "it's KX-B7")
 
 > **Important:** Use a stable LAN hostname for QR generation, such as `containerscan.local`, backed by a DHCP reservation or static lease on your router. Printed QR codes should point at a stable origin, not a development port.
 
@@ -329,7 +329,7 @@ Each printed QR label is rendered as a tile with three visual layers:
 
 ### Admin View (`/`)
 
-- Search bar (real-time full-text search including 4-letter code)
+- Search bar (real-time full-text search including container code)
 - Filter sidebar: filter by room, filter by colour label
 - Container grid/list with thumbnail preview, 4-letter code badge, room badge, and colour label indicator
 - Create, edit, and delete containers
@@ -338,7 +338,7 @@ Each printed QR label is rendered as a tile with three visual layers:
 
 ### Container Detail / Edit View (`/containers/{id}`)
 
-- 4-letter code displayed prominently (read-only)
+- Container code displayed prominently (read-only)
 - Editable name field
 - Editable description (multi-line text area)
 - Room selector dropdown
@@ -352,7 +352,7 @@ Each printed QR label is rendered as a tile with three visual layers:
 
 - Mobile-first, minimal UI
 - Header bar filled with the container's label colour
-- 4-letter code and container name displayed prominently
+- Container code and container name displayed prominently
 - Room location badge
 - Description text
 - Swipeable image gallery
@@ -363,7 +363,7 @@ Each printed QR label is rendered as a tile with three visual layers:
 
 - Select multiple containers to include
 - Renders QR codes in a grid (e.g. 4×2 per A4 page)
-- Each tile shows the 4-letter code at the top, QR code in the middle, name and room at the bottom
+- Each tile shows the container code at the top, QR code in the middle, name and room at the bottom
 - Each tile background filled with the container's assigned label colour
 - Uses `window.print()` with a print-specific CSS stylesheet to hide all UI chrome
 
@@ -439,7 +439,7 @@ containerscan/
 │   └── utils/
 │       ├── qr_generator.py      # qrcode lib wrapper — renders label tile with colour
 │       │                        # background, 4-letter code header, name and room footer
-│       └── code_generator.py    # generates and validates unique 4-letter codes (CHAR(4),
+│       └── code_generator.py    # generates and validates unique dashed container codes (CHAR(5),
 │                                # uppercase alpha, collision-checked against DB)
 ├── frontend/
     ├── Dockerfile
@@ -476,11 +476,11 @@ containerscan/
 The **Print Sheet** view:
 
 - Renders multiple QR codes in a grid (e.g. 4×2 per A4 page)
-- Each tile displays the **4-letter code** at the top in large bold text
+- Each tile displays the **container code** at the top in large bold text
 - Fills the background of each QR code tile with the container's assigned label colour
 - Prints the container name and room below each QR code
 - Uses `window.print()` with a print-specific CSS stylesheet to hide all UI chrome
-- Colour backgrounds and 4-letter codes aid quick visual identification when scanning a shelf of containers
+- Colour backgrounds and container codes aid quick visual identification when scanning a shelf of containers
 
 ---
 
@@ -490,8 +490,8 @@ The **Print Sheet** view:
 |---|---|
 | 1 | Docker Compose stack + PostgreSQL schema (including `rooms`, `labels`, `tsvector`, unique immutable `code` column) + FastAPI skeleton |
 | 2 | Room and label CRUD API |
-| 3 | Container CRUD API + unique 4-letter code generation on create |
-| 4 | QR code generation with colour background and 4-letter code header |
+| 3 | Container CRUD API + unique container code generation on create |
+| 4 | QR code generation with colour background and container code header |
 | 5 | Image upload, storage, reordering, and serving |
 | 6 | Full-text search via `GET /api/containers` (including code field) with room and label filters |
 | 7 | SvelteKit + Skeleton admin UI (create, edit, search, filter, download QR) |
@@ -573,7 +573,7 @@ Use this as the first working week plan.
 
 - Start tasks `2` and `3`.
 - Add SQLAlchemy, Alembic, and initial models for `rooms`, `labels`, `containers`, and `images` via `uv add`.
-- Implement the immutable 4-letter code generation strategy before any container CRUD routes exist.
+- Implement the immutable dashed container code generation strategy before any container CRUD routes exist.
 - Create the first migration and verify PostgreSQL schema creation.
 
 #### Day 4: Build Reference Data APIs
@@ -627,9 +627,9 @@ Responsible for creating the persistent data model and schema evolution workflow
 
 ### 3. Unique Container Code Generation
 
-Responsible for generating stable, unique 4-letter container codes.
+Responsible for generating stable, unique container codes.
 
-- Implement a code generator that produces uppercase alphabetic 4-letter values.
+- Implement a code generator that produces uppercase alphanumeric 4-character values with a dash in the middle (for example `AB-12`).
 - Check for collisions against existing records before insert completes.
 - Ensure generated codes are immutable after creation.
 - Add tests for collision handling and format validation.
@@ -667,7 +667,7 @@ Responsible for colour label management.
 Responsible for the core container lifecycle.
 
 - Implement container create, list, detail, update, and delete endpoints.
-- Generate the immutable 4-letter code during create.
+- Generate the immutable container code during create.
 - Support room and label assignment through foreign keys.
 - Return image metadata with container detail responses.
 - Ensure deletes also clean up related image records and stored files.
@@ -696,7 +696,7 @@ Responsible for managing container photos on disk and in the database.
 Responsible for generating printable QR label assets.
 
 - Build a QR rendering utility that encodes the stable scan URL.
-- Render the 4-letter code, QR image, container name, and room name into one label tile.
+- Render the container code, QR image, container name, and room name into one label tile.
 - Apply the selected label colour as the background while preserving scan contrast.
 - Expose a backend endpoint that returns a print-ready PNG.
 
@@ -811,6 +811,6 @@ Responsible for making the system runnable in the target home-network environmen
 - No HTTPS required (LAN-only); can be added later via a self-signed cert if desired
 - Single-user, no authentication needed
 - Colour labels are user-defined hex colours — no fixed palette is enforced
-- 4-letter codes are uppercase alphabetic, auto-generated, unique across all containers, and immutable after creation
+- Container codes are uppercase alphanumeric in the format `AA-BB`, auto-generated, unique across all containers, and immutable after creation
 - Full-text search is handled by PostgreSQL natively — no external search engine required
 - Frontend and API are served through a single LAN origin via Nginx to avoid port-specific QR codes and CORS complexity
