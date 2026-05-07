@@ -171,8 +171,13 @@ This design document covers both the long-term target architecture and the curre
 | `container_id` | UUID (FK) | Links to `containers` |
 | `filename` | VARCHAR | Stored filename on disk |
 | `uploaded_at` | TIMESTAMP | Upload date |
+| `is_primary` | BOOLEAN | Marks the main exterior/storage-location photo for the container |
 | `caption` | VARCHAR | Optional image caption |
 | `sort_order` | INTEGER | Display order within the container |
+
+> The first image associated with a container is intended to be the **primary exterior photo**: a picture of the outside of the container showing where it is physically stored. Additional images are intended to capture the contents inside the container.
+
+> The UI should make this explicit during container creation and image management so users understand that the first uploaded image is for the container exterior/storage location, while later images can document contents.
 
 > **Full-text search** is implemented using PostgreSQL's `tsvector` column on `containers`, updated via a trigger on `INSERT` and `UPDATE`. This enables fast search across container names, descriptions, and codes without a separate search engine.
 
@@ -259,6 +264,8 @@ This design document covers both the long-term target architecture and the curre
 3. Select a **room** from the dropdown (or create one inline)
 4. Select a **colour label** from the dropdown (or create one inline)
 5. Upload one or more photos of the container's contents
+   - The first uploaded image should be the outside of the container showing where it is physically stored
+   - Additional uploaded images can show the contents inside the container
 6. Click **Save** — a unique container code is automatically assigned
 
 ### Printing a QR Code
@@ -351,6 +358,8 @@ Each printed QR label is rendered as a tile with three visual layers:
 - Room selector dropdown
 - Colour label selector (colour swatches)
 - Drag-and-drop image upload and reordering
+- The first image slot should be clearly labeled as the primary exterior/storage-location photo
+- Additional image slots should be presented as contents photos
 - Individual image delete and caption edit
 - QR code download button
 - Last updated timestamp
@@ -507,7 +516,8 @@ As of `2026-05-06`, the repository has completed the backend foundation, referen
 - Build task `6` is complete: label CRUD API routes, hex-colour validation, and backend tests are implemented.
 - Build task `7` is complete: container create, list, detail, update, delete, and code-lookup routes are implemented with room/label validation and backend tests.
 - Build task `8` is complete: `GET /api/containers` now supports combined `search`, `room_id`, `label_id`, and `code` filters with backend tests.
-- Build task `9` is the next backend task: add image upload, storage, serving, and image-metadata update operations.
+- Build task `9` is complete: image upload, storage, serving, primary-image semantics, and image-metadata update/delete operations are implemented.
+- Build task `10` is the next backend task: add QR rendering and print-ready PNG generation.
 - Frontend work remains at scaffold level with a placeholder landing page.
 
 | Phase | Deliverable |
@@ -723,6 +733,7 @@ Responsible for searchable container listing.
 Responsible for managing container photos on disk and in the database.
 
 - Implement multipart image upload for a container.
+- Treat the first image for a container as its primary exterior/storage-location photo.
 - Store images in the configured local volume with safe generated filenames.
 - Persist image metadata including caption and sort order.
 - Serve stored images back to the frontend.
@@ -771,6 +782,7 @@ Responsible for editing and maintaining container metadata.
 - Build the `/containers/[id]` route.
 - Show the immutable code prominently.
 - Add form controls for name, description, room, and label.
+- Clearly explain that the primary image is the exterior/storage-location photo for the container.
 - Add image upload, delete, caption edit, and reorder interactions.
 - Add QR download access from the detail page.
 
@@ -780,6 +792,7 @@ Responsible for creating new containers from the UI.
 
 - Add a creation flow from the dashboard.
 - Allow room and label selection during creation.
+- Clearly instruct the user that the first uploaded image should show the outside of the container and where it is physically stored.
 - Support initial image upload after create or within the same flow.
 - Refresh the UI state so the new container appears immediately.
 

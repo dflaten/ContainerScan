@@ -74,6 +74,7 @@ def upgrade() -> None:
         sa.Column("container_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("filename", sa.String(length=512), nullable=False),
         sa.Column("uploaded_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False),
+        sa.Column("is_primary", sa.Boolean(), server_default=sa.text("false"), nullable=False),
         sa.Column("caption", sa.String(length=255), nullable=True),
         sa.Column("sort_order", sa.Integer(), server_default=sa.text("0"), nullable=False),
         sa.ForeignKeyConstraint(["container_id"], ["containers.id"], ondelete="CASCADE"),
