@@ -47,21 +47,31 @@ async function parseError(response, path) {
   });
 }
 
-export async function requestJson(fetchFn, path, options = {}) {
+async function request(fetchFn, path, options = {}) {
   const { method = 'GET', body, headers = {}, query } = options;
   const requestPath = buildUrl(path, query);
   const response = await fetchFn(requestPath, {
     method,
-    headers: {
-      accept: 'application/json',
-      ...headers
-    },
+    headers,
     body
   });
 
   if (!response.ok) {
     throw await parseError(response, requestPath);
   }
+
+  return response;
+}
+
+export async function requestJson(fetchFn, path, options = {}) {
+  const { headers = {}, ...rest } = options;
+  const response = await request(fetchFn, path, {
+    ...rest,
+    headers: {
+      accept: 'application/json',
+      ...headers
+    }
+  });
 
   if (response.status === 204) {
     return null;
@@ -93,8 +103,62 @@ export function createApi(fetchFn) {
     listContainers(filters = {}) {
       return requestJson(fetchFn, '/containers', { query: filters });
     },
+    createContainer(payload) {
+      return requestJson(fetchFn, '/containers', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+    },
+    getContainer(containerId) {
+      return requestJson(fetchFn, `/containers/${containerId}`);
+    },
+    updateContainer(containerId, payload) {
+      return requestJson(fetchFn, `/containers/${containerId}`, {
+        method: 'PUT',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+    },
+    async uploadContainerImages(containerId, { files, captions = [] }) {
+      const formData = new FormData();
+
+      for (const file of files) {
+        formData.append('images', file);
+      }
+
+      for (const caption of captions) {
+        formData.append('captions', caption);
+      }
+
+      return requestJson(fetchFn, `/containers/${containerId}/images`, {
+        method: 'POST',
+        body: formData
+      });
+    },
+    updateImage(imageId, payload) {
+      return requestJson(fetchFn, `/images/${imageId}`, {
+        method: 'PUT',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+    },
+    deleteImage(imageId) {
+      return requestJson(fetchFn, `/images/${imageId}`, {
+        method: 'DELETE'
+      });
+    },
     getScanContainer(containerId) {
       return requestJson(fetchFn, `/scan/${containerId}`);
+    },
+    getQrDownloadPath(containerId) {
+      return buildUrl(`/containers/${containerId}/qr`);
     }
   };
 }

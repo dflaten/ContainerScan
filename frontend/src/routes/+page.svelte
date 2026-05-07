@@ -18,6 +18,10 @@
   function isFilterActive() {
     return Boolean(data.filters.search || data.filters.room_id || data.filters.label_id);
   }
+
+  function createdContainer() {
+    return data.containers.find((container) => container.id === data.createdContainerId) ?? null;
+  }
 </script>
 
 <svelte:head>
@@ -25,12 +29,16 @@
 </svelte:head>
 
 <section class="hero-panel">
-  <span class="eyebrow">Task 13</span>
+  <span class="eyebrow">Tasks 13-15</span>
   <h1>Browse containers from one dashboard.</h1>
   <p>
     Search by contents or code, narrow by room or label, and scan the current inventory without
     leaving the main admin route.
   </p>
+
+  <div class="hero-actions">
+    <a class="primary-link" href="/containers/new">New Container</a>
+  </div>
 
   <div class="hero-meta">
     <article>
@@ -133,6 +141,13 @@
       <span class="eyebrow">Inventory</span>
       <h2>Container listing</h2>
     </div>
+
+    {#if createdContainer()}
+      <div class="notice-banner">
+        Created {createdContainer().code} for {createdContainer().name}.
+        <a class="text-link" href={`/containers/${createdContainer().id}`}>Open detail view</a>
+      </div>
+    {/if}
 
     {#if navigating.to}
       <div class="loading-banner">Loading updated results…</div>
