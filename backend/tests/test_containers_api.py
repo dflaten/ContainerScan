@@ -304,6 +304,7 @@ def _build_image(*, container_id: uuid.UUID, sort_order: int, caption: str | Non
         container_id=container_id,
         filename=f"{container_id}-{sort_order}.jpg",
         uploaded_at=datetime.now(timezone.utc),
+        is_primary=sort_order == 0,
         caption=caption,
         sort_order=sort_order,
     )

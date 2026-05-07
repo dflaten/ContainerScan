@@ -118,7 +118,13 @@ class Image(Base):
         server_default=func.now(),
         nullable=False,
     )
+    is_primary: Mapped[bool] = mapped_column(nullable=False, server_default=text("false"))
     caption: Mapped[str | None] = mapped_column(String(255), nullable=True)
     sort_order: Mapped[int] = mapped_column(Integer, nullable=False, server_default=text("0"))
 
     container: Mapped[Container] = relationship(back_populates="images")
+
+    @property
+    def url(self) -> str:
+        """Return the relative URL used to serve this stored image."""
+        return f"/images/{self.filename}"

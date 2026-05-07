@@ -7,10 +7,12 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
+from config import get_settings
 from database import get_db_session
 from models import Container, Label, Room
 from schemas import ContainerCreate, ContainerRead, ContainerUpdate
 from utils.code_generator import generate_unique_container_code
+from utils.image_storage import delete_stored_image
 
 router = APIRouter(prefix="/api/containers", tags=["containers"])
 
@@ -149,8 +151,12 @@ def delete_container(container_id: uuid.UUID, session: Session = Depends(get_db_
         Response: Empty `204 No Content` response on success.
     """
     container = _get_container_or_404(session, container_id)
+    image_filenames = [image.filename for image in container.images]
     session.delete(container)
     _commit_or_raise_conflict(session)
+    settings = get_settings()
+    for filename in image_filenames:
+        delete_stored_image(filename, settings.image_storage_path)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 

@@ -167,9 +167,28 @@ class ImageRead(APIModel):
     id: uuid.UUID
     container_id: uuid.UUID
     filename: str
+    url: str
     uploaded_at: datetime
+    is_primary: bool
     caption: str | None
     sort_order: int
+
+
+class ImageUpdate(BaseModel):
+    """Request schema for updating mutable image metadata."""
+
+    is_primary: bool | None = None
+    caption: str | None = None
+    sort_order: int = Field(ge=0)
+
+    @field_validator("caption")
+    @classmethod
+    def normalize_caption(cls, value: str | None) -> str | None:
+        """Trim image captions and collapse blanks to `None`."""
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized or None
 
 
 class ContainerRead(APIModel):
