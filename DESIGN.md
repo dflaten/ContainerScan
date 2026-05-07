@@ -506,7 +506,7 @@ The **Print Sheet** view:
 
 ### Current Progress Snapshot
 
-As of `2026-05-06`, the repository has completed the backend foundation, reference-data APIs, the core container CRUD slice, and container search/filter support:
+As of `2026-05-06`, the repository has completed the backend foundation, QR and scan support, the frontend bootstrap, and the first admin dashboard screen:
 
 - Build task `1` is complete: repository scaffold, Docker Compose, Dockerfiles, and Nginx config exist.
 - Build task `2` is complete: FastAPI app bootstrap, config loading, database session wiring, and `/api/health` are in place.
@@ -517,8 +517,11 @@ As of `2026-05-06`, the repository has completed the backend foundation, referen
 - Build task `7` is complete: container create, list, detail, update, delete, and code-lookup routes are implemented with room/label validation and backend tests.
 - Build task `8` is complete: `GET /api/containers` now supports combined `search`, `room_id`, `label_id`, and `code` filters with backend tests.
 - Build task `9` is complete: image upload, storage, serving, primary-image semantics, and image-metadata update/delete operations are implemented.
-- Build task `10` is the next backend task: add QR rendering and print-ready PNG generation.
-- Frontend work remains at scaffold level with a placeholder landing page.
+- Build task `10` is complete: QR rendering and print-ready label PNG generation are implemented.
+- Build task `11` is complete: the backend serves the read-only scan data path and mobile scan page.
+- Build task `12` is complete: the SvelteKit frontend bootstrap, shared API helpers, layout shell, and global theme foundation are in place.
+- Build task `13` is complete: the admin dashboard supports live container listing, search, room/label filters, and empty/error/loading states.
+- Development support is improved with a repeatable seed script and a follow-up migration that upgrades older four-character container codes to the current dashed five-character format.
 
 | Phase | Deliverable |
 |---|---|
@@ -765,6 +768,8 @@ Responsible for supporting phone-based read-only access from QR scans.
 
 ### 12. SvelteKit Frontend Bootstrap
 
+Status: complete as of `2026-05-06`.
+
 Responsible for the application shell and frontend development foundation.
 
 - Create the SvelteKit app structure under `frontend/`.
@@ -773,6 +778,8 @@ Responsible for the application shell and frontend development foundation.
 - Confirm the app can run behind Nginx with the documented origin.
 
 ### 13. Admin Dashboard UI
+
+Status: complete as of `2026-05-06`.
 
 Responsible for the main container browsing and discovery experience.
 
