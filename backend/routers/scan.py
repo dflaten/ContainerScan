@@ -52,7 +52,7 @@ def render_scan_view(container_id: uuid.UUID, session: Session = Depends(get_db_
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{escape(container.code)} | ContainerScan</title>
+    <title>{escape(container.code)} | HomeIndex</title>
     <style>
       :root {{
         color-scheme: light;

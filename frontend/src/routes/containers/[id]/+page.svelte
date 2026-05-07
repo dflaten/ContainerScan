@@ -168,7 +168,7 @@
 </script>
 
 <svelte:head>
-  <title>ContainerScan | {container ? container.code : 'Container'}</title>
+  <title>HomeIndex | {container ? container.code : 'Container'}</title>
 </svelte:head>
 
 {#if data.containerError || !container}

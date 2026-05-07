@@ -15,7 +15,7 @@ settings = get_settings()
 Path(settings.image_storage_path).mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(
-    title="ContainerScan API",
+    title="HomeIndex API",
     version="0.1.0",
 )
 

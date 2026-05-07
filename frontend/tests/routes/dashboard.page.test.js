@@ -1,5 +1,19 @@
-import { render, screen } from '@testing-library/svelte';
-import { describe, expect, test } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/svelte';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  goto: vi.fn()
+}));
+
+vi.mock('$app/navigation', () => ({
+  goto: mocks.goto
+}));
+
+vi.mock('$app/state', () => ({
+  navigating: {
+    to: null
+  }
+}));
 
 import Page from '../../src/routes/+page.svelte';
 
@@ -31,6 +45,11 @@ function buildDashboardData(overrides = {}) {
 }
 
 describe('dashboard route', () => {
+  beforeEach(() => {
+    mocks.goto.mockReset();
+    vi.useRealTimers();
+  });
+
   test('shows a created-container notice with a detail link', () => {
     render(Page, { data: buildDashboardData() });
 
@@ -62,5 +81,36 @@ describe('dashboard route', () => {
     );
 
     expect(screen.getByText(/deleted container aa-11\./i)).toBeInTheDocument();
+  });
+
+  test('applies the search filter after typing into the search field', async () => {
+    vi.useFakeTimers();
+    render(Page, { data: buildDashboardData() });
+
+    await fireEvent.input(screen.getByPlaceholderText(/lights, manuals, el-03/i), {
+      target: { value: 'camping gear' }
+    });
+
+    vi.advanceTimersByTime(300);
+
+    await waitFor(() => {
+      expect(mocks.goto).toHaveBeenCalledWith('/?search=camping+gear', {
+        replaceState: true,
+        keepFocus: true,
+        noScroll: true
+      });
+    });
+  });
+
+  test('shows only the search control on the landing page filters panel', () => {
+    render(Page, { data: buildDashboardData() });
+
+    expect(screen.getByLabelText('Search')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Room')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Label')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /advanced search/i })).toHaveAttribute(
+      'href',
+      '/advanced-search'
+    );
   });
 });

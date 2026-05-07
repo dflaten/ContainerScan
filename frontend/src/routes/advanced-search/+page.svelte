@@ -5,10 +5,14 @@
   export let data;
 
   let filters = {
-    search: data.filters.search
+    search: data.filters.search,
+    room_id: data.filters.room_id,
+    label_id: data.filters.label_id
   };
   let lastSyncedFilters = {
-    search: data.filters.search
+    search: data.filters.search,
+    room_id: data.filters.room_id,
+    label_id: data.filters.label_id
   };
   let searchTimer;
 
@@ -35,26 +39,28 @@
   }
 
   function isFilterActive() {
-    return Boolean(data.filters.search);
+    return Boolean(data.filters.search || data.filters.room_id || data.filters.label_id);
   }
 
-  function createdContainer() {
-    return data.containers.find((container) => container.id === data.createdContainerId) ?? null;
-  }
-
-  function buildDashboardQuery(nextFilters) {
+  function buildAdvancedSearchQuery(nextFilters) {
     const params = new URLSearchParams();
 
     if (nextFilters.search) {
       params.set('search', nextFilters.search);
     }
+    if (nextFilters.room_id) {
+      params.set('room_id', nextFilters.room_id);
+    }
+    if (nextFilters.label_id) {
+      params.set('label_id', nextFilters.label_id);
+    }
 
     const query = params.toString();
-    return query ? `/?${query}` : '/';
+    return query ? `/advanced-search?${query}` : '/advanced-search';
   }
 
   async function applyFilters() {
-    await goto(buildDashboardQuery(filters), {
+    await goto(buildAdvancedSearchQuery(filters), {
       replaceState: true,
       keepFocus: true,
       noScroll: true
@@ -74,13 +80,19 @@
   }
 
   $: if (
-    data.filters.search !== lastSyncedFilters.search
+    data.filters.search !== lastSyncedFilters.search ||
+    data.filters.room_id !== lastSyncedFilters.room_id ||
+    data.filters.label_id !== lastSyncedFilters.label_id
   ) {
     filters = {
-      search: data.filters.search
+      search: data.filters.search,
+      room_id: data.filters.room_id,
+      label_id: data.filters.label_id
     };
     lastSyncedFilters = {
-      search: data.filters.search
+      search: data.filters.search,
+      room_id: data.filters.room_id,
+      label_id: data.filters.label_id
     };
   }
 
@@ -89,30 +101,51 @@
 </script>
 
 <svelte:head>
-  <title>HomeIndex | Dashboard</title>
+  <title>HomeIndex | Advanced Search</title>
 </svelte:head>
 
 <section class="content-grid">
   <article class="panel">
     <div class="panel-heading">
-      <span class="eyebrow">Search</span>
+      <span class="eyebrow">Filters</span>
+      <h2>Advanced Search</h2>
     </div>
 
     <form class="dashboard-form" method="GET">
       <label class="field">
+        <span>Search</span>
         <input
           type="search"
           name="search"
-          aria-label="Search"
           placeholder="lights, manuals, EL-03"
           bind:value={filters.search}
           on:input={handleSearchInput}
         />
       </label>
 
+      <label class="field">
+        <span>Room</span>
+        <select name="room_id" bind:value={filters.room_id} on:change={handleFilterChange}>
+          <option value="">All rooms</option>
+          {#each data.rooms as room}
+            <option value={room.id}>{room.name}</option>
+          {/each}
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Label</span>
+        <select name="label_id" bind:value={filters.label_id} on:change={handleFilterChange}>
+          <option value="">All labels</option>
+          {#each data.labels as label}
+            <option value={label.id}>{label.name}</option>
+          {/each}
+        </select>
+      </label>
+
       <div class="form-actions">
-        <a class="text-link" href="/advanced-search">Advanced Search</a>
-        <a class="text-link" href="/">Clear</a>
+        <a class="text-link" href="/">Back to Search</a>
+        <a class="text-link" href="/advanced-search">Clear</a>
       </div>
     </form>
   </article>
@@ -120,18 +153,8 @@
   <article class="panel panel-wide">
     <div class="panel-heading">
       <span class="eyebrow">Inventory</span>
+      <h2>Container list</h2>
     </div>
-
-    {#if createdContainer()}
-      <div class="notice-banner">
-        Created {createdContainer().code}.
-        <a class="text-link" href={`/containers/${createdContainer().id}`}>Open detail view</a>
-      </div>
-    {/if}
-
-    {#if data.deletedContainerCode}
-      <div class="notice-banner">Deleted container {data.deletedContainerCode}.</div>
-    {/if}
 
     {#if navigating.to}
       <div class="loading-banner">Loading updated results…</div>
@@ -219,7 +242,7 @@
                     </div>
 
                     <h3>{container.name}</h3>
-                    <p>{container.description || 'No description recorded yet.'}</p>
+                    <p>{container.description || 'No description saved yet.'}</p>
 
                     <dl class="card-meta">
                       <div>
