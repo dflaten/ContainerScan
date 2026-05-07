@@ -13,6 +13,7 @@ from models import Container, Label, Room
 from schemas import ContainerCreate, ContainerRead, ContainerUpdate
 from utils.code_generator import generate_unique_container_code
 from utils.image_storage import delete_stored_image
+from utils.qr_labels import render_qr_label_png
 
 router = APIRouter(prefix="/api/containers", tags=["containers"])
 
@@ -87,6 +88,26 @@ def get_container(container_id: uuid.UUID, session: Session = Depends(get_db_ses
     """
     container = _get_container_or_404(session, container_id)
     return container
+
+
+@router.get("/{container_id}/qr")
+def download_container_qr_label(
+    container_id: uuid.UUID,
+    session: Session = Depends(get_db_session),
+) -> Response:
+    """Generate and return a printable QR label PNG for one container."""
+    container = _get_container_or_404(session, container_id)
+    room_name = container.room.name if container.room is not None else "Unassigned Room"
+    label_colour = container.label.colour if container.label is not None else "#FFFFFF"
+    png_bytes = render_qr_label_png(
+        container_id=container.id,
+        container_code=container.code,
+        container_name=container.name,
+        room_name=room_name,
+        label_colour=label_colour,
+    )
+    headers = {"Content-Disposition": f'attachment; filename="{container.code}-label.png"'}
+    return Response(content=png_bytes, media_type="image/png", headers=headers)
 
 
 @router.get("/code/{code}", response_model=ContainerRead)
@@ -173,7 +194,15 @@ def _get_container_or_404(session: Session, container_id: uuid.UUID) -> Containe
     Raises:
         HTTPException: If the container does not exist.
     """
-    statement = select(Container).options(selectinload(Container.images)).where(Container.id == container_id)
+    statement = (
+        select(Container)
+        .options(
+            selectinload(Container.images),
+            selectinload(Container.room),
+            selectinload(Container.label),
+        )
+        .where(Container.id == container_id)
+    )
     container = session.execute(statement).scalar_one_or_none()
     if container is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Container not found.")

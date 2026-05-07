@@ -203,3 +203,30 @@ class ContainerRead(APIModel):
     created_at: datetime
     updated_at: datetime
     images: list[ImageRead] = Field(default_factory=list)
+
+
+class ScanRoomRead(APIModel):
+    """Read-only room metadata exposed to public scan views."""
+
+    id: uuid.UUID
+    name: str
+
+
+class ScanLabelRead(APIModel):
+    """Read-only label metadata exposed to public scan views."""
+
+    id: uuid.UUID
+    name: str
+    colour: str
+
+
+class ScanContainerRead(APIModel):
+    """Public read-only container data returned for scan views."""
+
+    id: uuid.UUID
+    code: str
+    name: str
+    description: str
+    room: ScanRoomRead
+    label: ScanLabelRead
+    images: list[ImageRead] = Field(default_factory=list)

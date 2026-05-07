@@ -17,12 +17,14 @@ from models import Container, Image, Label, Room
 from routers.containers import (
     create_container,
     delete_container,
+    download_container_qr_label,
     get_container,
     get_container_by_code,
     list_containers,
     update_container,
 )
 from schemas import ContainerCreate, ContainerUpdate
+from utils.qr_labels import build_scan_url
 
 
 @dataclass
@@ -284,6 +286,8 @@ def _build_container(
         label_id=label_id,
         created_at=timestamp,
         updated_at=timestamp,
+        room=None,
+        label=None,
         images=[],
     )
 
@@ -522,3 +526,82 @@ def test_list_containers_supports_search_and_combined_filters() -> None:
         "BC-23",
         "AA-11",
     ]
+
+
+def test_download_container_qr_label_returns_png_attachment() -> None:
+    """Verify the QR endpoint returns a PNG response with a useful filename."""
+    pytest = __import__("pytest")
+    pytest.importorskip("qrcode")
+    pytest.importorskip("PIL")
+
+    room = _build_room(name="Garage")
+    label = _build_label(name="Tools", colour="#AABBCC")
+    container = _build_container(
+        code="AA-11",
+        name="Hardware Bin",
+        room_id=room.id,
+        label_id=label.id,
+        description="screws bolts nails",
+    )
+    container.room = room
+    container.label = label
+    session = FakeSession(
+        rooms={room.id: room},
+        labels={label.id: label},
+        containers={container.id: container},
+    )
+
+    response = download_container_qr_label(container.id, session)
+
+    assert response.media_type == "image/png"
+    assert response.headers["content-disposition"] == 'attachment; filename="AA-11-label.png"'
+    assert response.body.startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_download_container_qr_label_passes_expected_metadata_to_renderer() -> None:
+    """Verify the QR endpoint encodes stable scan data and container metadata."""
+    room = _build_room(name="Attic")
+    label = _build_label(name="Seasonal", colour="#112233")
+    container = _build_container(
+        code="BC-23",
+        name="Holiday Lights",
+        room_id=room.id,
+        label_id=label.id,
+        description="led strings",
+    )
+    container.room = room
+    container.label = label
+    session = FakeSession(
+        rooms={room.id: room},
+        labels={label.id: label},
+        containers={container.id: container},
+    )
+
+    captured: dict[str, object] = {}
+
+    def _fake_render_qr_label_png(**kwargs: object) -> bytes:
+        captured.update(kwargs)
+        return b"png-bytes"
+
+    with patch("routers.containers.render_qr_label_png", side_effect=_fake_render_qr_label_png):
+        response = download_container_qr_label(container.id, session)
+
+    assert response.body == b"png-bytes"
+    assert captured == {
+        "container_id": container.id,
+        "container_code": "BC-23",
+        "container_name": "Holiday Lights",
+        "room_name": "Attic",
+        "label_colour": "#112233",
+    }
+
+
+def test_build_scan_url_uses_public_base_url_without_double_slashes() -> None:
+    """Verify scan URLs are built from the configured LAN origin."""
+    with patch(
+        "utils.qr_labels.get_settings",
+        return_value=type("Settings", (), {"public_base_url": "http://containerscan.local/"})(),
+    ):
+        scan_url = build_scan_url(uuid.UUID("12345678-1234-5678-1234-567812345678"))
+
+    assert scan_url == "http://containerscan.local/scan/12345678-1234-5678-1234-567812345678"

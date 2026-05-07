@@ -8,6 +8,7 @@ from routers.containers import router as containers_router
 from routers.images import router as images_router
 from routers.labels import router as labels_router
 from routers.rooms import router as rooms_router
+from routers.scan import router as scan_router
 
 
 settings = get_settings()
@@ -33,4 +34,5 @@ app.include_router(rooms_router)
 app.include_router(labels_router)
 app.include_router(containers_router)
 app.include_router(images_router)
+app.include_router(scan_router)
 app.mount("/images", StaticFiles(directory=settings.image_storage_path), name="images")
