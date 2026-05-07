@@ -518,7 +518,7 @@ The **Print Sheet** view:
 
 ### Current Progress Snapshot
 
-As of `2026-05-06`, the repository has completed the backend foundation, QR and scan support, the frontend bootstrap, the admin dashboard, and the first container-management screens:
+As of `2026-05-07`, the repository has completed the backend foundation, QR and scan support, the frontend bootstrap, the label-first admin dashboard, and the first container-management screens:
 
 - Build task `1` is complete: repository scaffold, Docker Compose, Dockerfiles, and Nginx config exist.
 - Build task `2` is complete: FastAPI app bootstrap, config loading, database session wiring, and `/api/health` are in place.
@@ -526,16 +526,16 @@ As of `2026-05-06`, the repository has completed the backend foundation, QR and 
 - Build task `4` is complete: unique dashed container code generation utility and tests for format and collision handling are implemented.
 - Build task `5` is complete: room CRUD API routes, shared schemas, validation, and backend tests are implemented.
 - Build task `6` is complete: label CRUD API routes, hex-colour validation, and backend tests are implemented.
-- Build task `7` is complete: container create, list, detail, update, delete, and code-lookup routes are implemented with room/label validation and backend tests.
+- Build task `7` is complete: container create, list, detail, update, delete, and code-lookup routes are implemented, including label-first shell-container creation with optional room/label assignment and backend tests.
 - Build task `8` is complete: `GET /api/containers` now supports combined `search`, `room_id`, `label_id`, and `code` filters with backend tests.
 - Build task `9` is complete: image upload, storage, serving, primary-image semantics, and image-metadata update/delete operations are implemented.
 - Build task `10` is complete: QR rendering and print-ready label PNG generation are implemented.
 - Build task `11` is complete: the backend serves the read-only scan data path and mobile scan page.
 - Build task `12` is complete: the SvelteKit frontend bootstrap, shared API helpers, layout shell, and global theme foundation are in place.
-- Build task `13` is complete: the admin dashboard supports live container listing, search, room/label filters, and empty/error/loading states.
-- Build task `14` is complete: the create-container flow supports room/label selection, optional initial image upload, and dashboard refresh after creation.
-- Build task `15` is complete: the container detail screen supports metadata editing, QR download access, and image upload/update/delete management.
-- Development support is improved with a repeatable seed script and a follow-up migration that upgrades older four-character container codes to the current dashed five-character format.
+- Build task `13` is complete: the admin dashboard supports live container listing, dynamic search, room/label filters, separation of generated-but-undocumented containers from documented containers, and empty/error/loading states.
+- Build task `14` is complete: the create-container flow now centers on generating a container label first, with optional quick metadata and redirect into the detail page for later documentation.
+- Build task `15` is complete: the container detail screen supports metadata editing, QR download access, draft-container guidance, delete actions, and image upload/update/delete management.
+- Development support is improved with a repeatable seed script, updated seeded default rooms (`Basement` and `Garage`), and follow-up migrations that upgrade older four-character container codes and relax room/label assignment requirements for the label-first flow.
 
 | Phase | Deliverable |
 |---|---|
@@ -723,13 +723,13 @@ Responsible for colour label management.
 
 ### 7. Container CRUD API
 
-Status: complete as of `2026-05-06`.
+Status: complete as of `2026-05-07`.
 
 Responsible for the core container lifecycle.
 
 - Implement container create, list, detail, update, and delete endpoints.
 - Generate the immutable container code during create.
-- Support room and label assignment through foreign keys.
+- Support room and label assignment through foreign keys when known, while allowing shell containers to be created before those details exist.
 - Return image metadata with container detail responses.
 - Ensure deletes also clean up related image records and, once task `9` exists, stored files.
 
@@ -793,39 +793,44 @@ Responsible for the application shell and frontend development foundation.
 
 ### 13. Admin Dashboard UI
 
-Status: complete as of `2026-05-06`.
+Status: complete as of `2026-05-07`.
 
 Responsible for the main container browsing and discovery experience.
 
 - Build the dashboard route for container listing.
 - Add the search bar, room filter, and label filter controls.
+- Apply search dynamically while typing and apply room/label filters immediately on change.
+- Separate generated-but-undocumented containers from documented containers so the label-first workflow remains visible.
 - Render container cards or rows with thumbnail, code, room, and label indicators.
 - Add empty, loading, and error states.
 
 ### 14. Create Container Flow
 
-Status: complete as of `2026-05-06`.
+Status: complete as of `2026-05-07`.
 
-Responsible for creating new containers from the UI.
+Responsible for generating new container labels and records from the UI.
 
 - Add a creation flow from the dashboard.
-- Allow room and label selection during creation.
-- Clearly instruct the user that the first uploaded image should show the outside of the container and where it is physically stored.
-- Support initial image upload after create or within the same flow.
-- Refresh the UI state so the new container appears immediately.
+- Generate the container code immediately and persist the record before the box is documented.
+- Allow quick name, room, and label assignment during creation, but keep them optional.
+- Redirect the user into the detail page after creation so QR download and later documentation happen in one place.
+- Make the create flow optimize for “generate, print, attach” rather than “fully describe now.”
 
 ### 15. Container Detail and Edit UI
 
-Status: complete as of `2026-05-06`.
+Status: complete as of `2026-05-07`.
 
 Responsible for editing and maintaining container metadata.
 
 - Build the `/containers/[id]` route.
 - Show the immutable code prominently.
 - Add form controls for name, description, room, and label.
+- Keep room and label optional so partially documented containers remain valid.
+- Show clear guidance when a container still exists only as a generated label record.
 - Clearly explain that the primary image is the exterior/storage-location photo for the container.
 - Add image upload, delete, caption edit, and reorder interactions.
 - Add QR download access from the detail page.
+- Add delete-container support from the detail page.
 
 ### 16. Mobile Scan View UI
 
