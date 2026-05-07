@@ -10,8 +10,12 @@ export class ApiError extends Error {
   }
 }
 
-function buildUrl(path, query = undefined) {
-  const url = new URL(`${API_BASE_PATH}${path}`, 'http://containerscan.local');
+function buildUrl(path, query = undefined, basePath = API_BASE_PATH) {
+  const isAbsoluteBasePath = /^https?:\/\//.test(basePath);
+  const normalizedBasePath = isAbsoluteBasePath ? basePath.replace(/\/$/, '') : basePath;
+  const url = isAbsoluteBasePath
+    ? new URL(`${normalizedBasePath}${path}`)
+    : new URL(`${normalizedBasePath}${path}`, 'http://containerscan.local');
 
   if (query !== undefined) {
     for (const [key, value] of Object.entries(query)) {
@@ -23,7 +27,7 @@ function buildUrl(path, query = undefined) {
     }
   }
 
-  return `${url.pathname}${url.search}`;
+  return isAbsoluteBasePath ? url.toString() : `${url.pathname}${url.search}`;
 }
 
 async function parseError(response, path) {
@@ -48,8 +52,8 @@ async function parseError(response, path) {
 }
 
 async function request(fetchFn, path, options = {}) {
-  const { method = 'GET', body, headers = {}, query } = options;
-  const requestPath = buildUrl(path, query);
+  const { method = 'GET', body, headers = {}, query, basePath = API_BASE_PATH } = options;
+  const requestPath = buildUrl(path, query, basePath);
   const response = await fetchFn(requestPath, {
     method,
     headers,
@@ -89,40 +93,46 @@ export async function safeRequest(request) {
   }
 }
 
-export function createApi(fetchFn) {
+export function createApi(fetchFn, config = {}) {
+  const { basePath = API_BASE_PATH } = config;
+  const createRequestOptions = (options = {}) => ({
+    ...options,
+    basePath
+  });
+
   return {
     getHealth() {
-      return requestJson(fetchFn, '/health');
+      return requestJson(fetchFn, '/health', createRequestOptions());
     },
     listRooms() {
-      return requestJson(fetchFn, '/rooms');
+      return requestJson(fetchFn, '/rooms', createRequestOptions());
     },
     listLabels() {
-      return requestJson(fetchFn, '/labels');
+      return requestJson(fetchFn, '/labels', createRequestOptions());
     },
     listContainers(filters = {}) {
-      return requestJson(fetchFn, '/containers', { query: filters });
+      return requestJson(fetchFn, '/containers', createRequestOptions({ query: filters }));
     },
     createContainer(payload) {
-      return requestJson(fetchFn, '/containers', {
+      return requestJson(fetchFn, '/containers', createRequestOptions({
         method: 'POST',
         headers: {
           'content-type': 'application/json'
         },
         body: JSON.stringify(payload)
-      });
+      }));
     },
     getContainer(containerId) {
-      return requestJson(fetchFn, `/containers/${containerId}`);
+      return requestJson(fetchFn, `/containers/${containerId}`, createRequestOptions());
     },
     updateContainer(containerId, payload) {
-      return requestJson(fetchFn, `/containers/${containerId}`, {
+      return requestJson(fetchFn, `/containers/${containerId}`, createRequestOptions({
         method: 'PUT',
         headers: {
           'content-type': 'application/json'
         },
         body: JSON.stringify(payload)
-      });
+      }));
     },
     async uploadContainerImages(containerId, { files, captions = [] }) {
       const formData = new FormData();
@@ -135,27 +145,27 @@ export function createApi(fetchFn) {
         formData.append('captions', caption);
       }
 
-      return requestJson(fetchFn, `/containers/${containerId}/images`, {
+      return requestJson(fetchFn, `/containers/${containerId}/images`, createRequestOptions({
         method: 'POST',
         body: formData
-      });
+      }));
     },
     updateImage(imageId, payload) {
-      return requestJson(fetchFn, `/images/${imageId}`, {
+      return requestJson(fetchFn, `/images/${imageId}`, createRequestOptions({
         method: 'PUT',
         headers: {
           'content-type': 'application/json'
         },
         body: JSON.stringify(payload)
-      });
+      }));
     },
     deleteImage(imageId) {
-      return requestJson(fetchFn, `/images/${imageId}`, {
+      return requestJson(fetchFn, `/images/${imageId}`, createRequestOptions({
         method: 'DELETE'
-      });
+      }));
     },
     getScanContainer(containerId) {
-      return requestJson(fetchFn, `/scan/${containerId}`);
+      return requestJson(fetchFn, `/scan/${containerId}`, createRequestOptions());
     },
     getQrDownloadPath(containerId) {
       return buildUrl(`/containers/${containerId}/qr`);

@@ -3,6 +3,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile, Response, status
+from starlette.datastructures import UploadFile as StarletteUploadFile
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -32,7 +33,7 @@ async def upload_container_images_endpoint(
 async def upload_container_images(
     container_id: uuid.UUID,
     session: Session,
-    images: list[UploadFile],
+    images: list[UploadFile | StarletteUploadFile],
     captions: list[str] | None,
 ) -> list[Image]:
     """Upload one or more images for a container.
@@ -44,7 +45,7 @@ async def upload_container_images(
     container = session.get(Container, container_id)
     if container is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Container not found.")
-    if any(not isinstance(image, UploadFile) for image in images):
+    if any(not isinstance(image, StarletteUploadFile) for image in images):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid image upload payload.")
     if not images:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="At least one image is required.")
@@ -158,7 +159,7 @@ def _get_image_or_404(session: Session, image_id: uuid.UUID) -> Image:
 
 def _normalize_captions(captions: list[str] | None, expected_count: int) -> list[str | None]:
     """Normalize optional upload captions to match the image count."""
-    if captions is None:
+    if captions is None or len(captions) == 0:
         return [None] * expected_count
     if len(captions) != expected_count:
         raise HTTPException(

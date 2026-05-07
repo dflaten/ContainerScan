@@ -10,6 +10,7 @@ from tempfile import TemporaryDirectory
 import uuid
 
 from fastapi import HTTPException, UploadFile
+from starlette.datastructures import UploadFile as StarletteUploadFile
 from sqlalchemy.exc import IntegrityError
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -118,6 +119,13 @@ def _build_upload(filename: str, content_type: str, payload: bytes) -> UploadFil
     file.write(payload)
     file.seek(0)
     return UploadFile(file=file, filename=filename, headers={"content-type": content_type})
+
+
+def _build_starlette_upload(filename: str, content_type: str, payload: bytes) -> StarletteUploadFile:
+    file = SpooledTemporaryFile()
+    file.write(payload)
+    file.seek(0)
+    return StarletteUploadFile(file=file, filename=filename, headers={"content-type": content_type})
 
 
 def test_save_upload_to_storage_uses_safe_generated_filenames() -> None:
@@ -242,6 +250,61 @@ def test_upload_container_images_validates_missing_container_and_caption_mismatc
         assert exc.detail == "Caption count must match the number of uploaded images."
     else:
         raise AssertionError("Expected caption mismatch to raise HTTPException")
+
+
+def test_upload_container_images_accepts_missing_caption_fields() -> None:
+    """Verify uploads succeed when the client submits no caption fields at all."""
+    room = _build_room(name="Garage")
+    label = _build_label(name="Tools", colour="#AABBCC")
+    container = _build_container(code="AA-11", room_id=room.id, label_id=label.id)
+    session = FakeSession(containers={container.id: container})
+
+    with TemporaryDirectory() as temp_dir:
+        import routers.images as images_router
+
+        original_get_settings = images_router.get_settings
+        images_router.get_settings = lambda: type("Settings", (), {"image_storage_path": temp_dir})()
+        try:
+            created = asyncio.run(
+                upload_container_images(
+                    container.id,
+                    session=session,
+                    images=[_build_upload("front.jpg", "image/jpeg", b"front")],
+                    captions=[],
+                )
+            )
+            assert len(created) == 1
+            assert created[0].caption is None
+            assert created[0].is_primary is True
+        finally:
+            images_router.get_settings = original_get_settings
+
+
+def test_upload_container_images_accepts_starlette_form_uploads() -> None:
+    """Verify multipart form uploads parsed by Starlette are accepted."""
+    room = _build_room(name="Garage")
+    label = _build_label(name="Tools", colour="#AABBCC")
+    container = _build_container(code="AA-11", room_id=room.id, label_id=label.id)
+    session = FakeSession(containers={container.id: container})
+
+    with TemporaryDirectory() as temp_dir:
+        import routers.images as images_router
+
+        original_get_settings = images_router.get_settings
+        images_router.get_settings = lambda: type("Settings", (), {"image_storage_path": temp_dir})()
+        try:
+            created = asyncio.run(
+                upload_container_images(
+                    container.id,
+                    session=session,
+                    images=[_build_starlette_upload("front.jpg", "image/jpeg", b"front")],
+                    captions=[],
+                )
+            )
+            assert len(created) == 1
+            assert created[0].caption is None
+        finally:
+            images_router.get_settings = original_get_settings
 
 
 def test_first_uploaded_image_becomes_primary_for_a_container() -> None:

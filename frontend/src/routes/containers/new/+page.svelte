@@ -40,7 +40,12 @@
       await goto(`/?created=${createdContainer.id}`);
     } catch (error) {
       if (createdContainer !== null) {
-        await goto(`/containers/${createdContainer.id}?created=1&image_upload_error=1`);
+        const imageUploadErrorMessage = encodeURIComponent(
+          error.detail ?? error.message ?? 'Initial image upload failed.'
+        );
+        await goto(
+          `/containers/${createdContainer.id}?created=1&image_upload_error=1&image_upload_error_message=${imageUploadErrorMessage}`
+        );
         return;
       }
 

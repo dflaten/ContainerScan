@@ -1,8 +1,9 @@
-import { createApi, safeRequest } from '$lib/api';
+import { safeRequest } from '$lib/api';
+import { createServerApi } from '$lib/server-api';
 
 export async function load({ fetch, params, parent, url }) {
   const parentData = await parent();
-  const api = createApi(fetch);
+  const api = createServerApi(fetch);
   const containerResult = await safeRequest(api.getContainer(params.id));
 
   return {
@@ -12,6 +13,7 @@ export async function load({ fetch, params, parent, url }) {
       : containerResult.error.detail ?? containerResult.error.message,
     createdNotice: url.searchParams.get('created') === '1',
     imageUploadErrorNotice: url.searchParams.get('image_upload_error') === '1',
+    imageUploadErrorMessage: url.searchParams.get('image_upload_error_message'),
     labels: parentData.labels,
     rooms: parentData.rooms
   };

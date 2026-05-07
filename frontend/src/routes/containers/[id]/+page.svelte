@@ -10,7 +10,8 @@
   let metadataNotice = data.createdNotice ? 'Container created. You can keep editing it here.' : null;
   let imageNotice = null;
   let imageError = data.imageUploadErrorNotice
-    ? 'The container was created, but the initial image upload did not complete. You can retry here.'
+    ? data.imageUploadErrorMessage ||
+      'The container was created, but the initial image upload did not complete. You can retry here.'
     : null;
   let isSavingMetadata = false;
   let isUploadingImages = false;

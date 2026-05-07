@@ -1,7 +1,8 @@
-import { API_BASE_PATH, createApi, safeRequest } from '$lib/api';
+import { API_BASE_PATH, safeRequest } from '$lib/api';
+import { createServerApi } from '$lib/server-api';
 
 export async function load({ fetch, url }) {
-  const api = createApi(fetch);
+  const api = createServerApi(fetch);
 
   const [health, rooms, labels] = await Promise.all([
     safeRequest(api.getHealth()),
