@@ -7,15 +7,30 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class APIModel(BaseModel):
+    """Base Pydantic model configured for ORM object serialization."""
+
     model_config = ConfigDict(from_attributes=True)
 
 
 class NamedResourceBase(BaseModel):
+    """Shared schema fields and validation for named resources."""
+
     name: str
 
     @field_validator("name")
     @classmethod
     def validate_name(cls, value: str) -> str:
+        """Normalize and validate a required resource name.
+
+        Args:
+            value: Raw name value from the request payload.
+
+        Returns:
+            str: The trimmed name value.
+
+        Raises:
+            ValueError: If the normalized name is empty.
+        """
         normalized = value.strip()
         if not normalized:
             raise ValueError("Name must not be empty.")
@@ -23,25 +38,44 @@ class NamedResourceBase(BaseModel):
 
 
 class RoomCreate(NamedResourceBase):
+    """Request schema for creating a room."""
+
     pass
 
 
 class RoomUpdate(NamedResourceBase):
+    """Request schema for updating a room."""
+
     pass
 
 
 class RoomRead(APIModel):
+    """Response schema for room data."""
+
     id: uuid.UUID
     name: str
     created_at: datetime
 
 
 class LabelBase(NamedResourceBase):
+    """Shared schema fields and validation for labels."""
+
     colour: str
 
     @field_validator("colour")
     @classmethod
     def validate_colour(cls, value: str) -> str:
+        """Normalize and validate a label colour value.
+
+        Args:
+            value: Raw colour value from the request payload.
+
+        Returns:
+            str: The normalized uppercase hex colour.
+
+        Raises:
+            ValueError: If the value is not a valid six-digit hex colour.
+        """
         normalized = value.strip().upper()
         if len(normalized) != 7 or normalized[0] != "#":
             raise ValueError("Colour must be a hex value like #FF5733.")
@@ -54,14 +88,20 @@ class LabelBase(NamedResourceBase):
 
 
 class LabelCreate(LabelBase):
+    """Request schema for creating a label."""
+
     pass
 
 
 class LabelUpdate(LabelBase):
+    """Request schema for updating a label."""
+
     pass
 
 
 class LabelRead(APIModel):
+    """Response schema for label data."""
+
     id: uuid.UUID
     name: str
     colour: str
@@ -69,6 +109,8 @@ class LabelRead(APIModel):
 
 
 class ContainerBase(BaseModel):
+    """Shared request fields and validation for container writes."""
+
     name: str
     description: str = ""
     room_id: uuid.UUID
@@ -77,6 +119,17 @@ class ContainerBase(BaseModel):
     @field_validator("name")
     @classmethod
     def validate_name(cls, value: str) -> str:
+        """Normalize and validate a required container name.
+
+        Args:
+            value: Raw name value from the request payload.
+
+        Returns:
+            str: The trimmed name value.
+
+        Raises:
+            ValueError: If the normalized name is empty.
+        """
         normalized = value.strip()
         if not normalized:
             raise ValueError("Name must not be empty.")
@@ -85,18 +138,32 @@ class ContainerBase(BaseModel):
     @field_validator("description")
     @classmethod
     def normalize_description(cls, value: str) -> str:
+        """Trim container description text.
+
+        Args:
+            value: Raw description value from the request payload.
+
+        Returns:
+            str: The trimmed description string.
+        """
         return value.strip()
 
 
 class ContainerCreate(ContainerBase):
+    """Request schema for creating a container."""
+
     pass
 
 
 class ContainerUpdate(ContainerBase):
+    """Request schema for updating a container."""
+
     pass
 
 
 class ImageRead(APIModel):
+    """Response schema for container image metadata."""
+
     id: uuid.UUID
     container_id: uuid.UUID
     filename: str
@@ -106,6 +173,8 @@ class ImageRead(APIModel):
 
 
 class ContainerRead(APIModel):
+    """Response schema for container data, including image metadata."""
+
     id: uuid.UUID
     code: str
     name: str

@@ -13,6 +13,11 @@ app = FastAPI(
 
 @app.get("/api/health")
 def healthcheck() -> dict[str, str]:
+    """Report basic API liveness.
+
+    Returns:
+        dict[str, str]: A minimal status payload indicating the API is up.
+    """
     return {"status": "ok"}
 
 

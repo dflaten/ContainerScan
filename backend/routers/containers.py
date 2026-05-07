@@ -17,6 +17,14 @@ router = APIRouter(prefix="/api/containers", tags=["containers"])
 
 @router.get("", response_model=list[ContainerRead])
 def list_containers(session: Session = Depends(get_db_session)) -> list[Container]:
+    """List all containers with image metadata preloaded.
+
+    Args:
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        list[Container]: Containers ordered from newest to oldest.
+    """
     statement = (
         select(Container)
         .options(selectinload(Container.images))
@@ -27,6 +35,15 @@ def list_containers(session: Session = Depends(get_db_session)) -> list[Containe
 
 @router.post("", response_model=ContainerRead, status_code=status.HTTP_201_CREATED)
 def create_container(payload: ContainerCreate, session: Session = Depends(get_db_session)) -> Container:
+    """Create a new container with a generated immutable code.
+
+    Args:
+        payload: Validated container creation request.
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        Container: The newly created container record.
+    """
     _ensure_room_and_label_exist(session, room_id=payload.room_id, label_id=payload.label_id)
 
     container = Container(
@@ -44,12 +61,33 @@ def create_container(payload: ContainerCreate, session: Session = Depends(get_db
 
 @router.get("/{container_id}", response_model=ContainerRead)
 def get_container(container_id: uuid.UUID, session: Session = Depends(get_db_session)) -> Container:
+    """Fetch a single container by UUID.
+
+    Args:
+        container_id: Identifier of the container to load.
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        Container: The matching container record.
+    """
     container = _get_container_or_404(session, container_id)
     return container
 
 
 @router.get("/code/{code}", response_model=ContainerRead)
 def get_container_by_code(code: str, session: Session = Depends(get_db_session)) -> Container:
+    """Fetch a single container by its human-facing code.
+
+    Args:
+        code: Four-character dashed container code such as `AB-12`.
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        Container: The matching container record.
+
+    Raises:
+        HTTPException: If no container exists for the supplied code.
+    """
     statement = select(Container).options(selectinload(Container.images)).where(Container.code == code.upper())
     container = session.execute(statement).scalar_one_or_none()
     if container is None:
@@ -63,6 +101,16 @@ def update_container(
     payload: ContainerUpdate,
     session: Session = Depends(get_db_session),
 ) -> Container:
+    """Update mutable container fields.
+
+    Args:
+        container_id: Identifier of the container to update.
+        payload: Validated container update request.
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        Container: The updated container record.
+    """
     container = _get_container_or_404(session, container_id)
     _ensure_room_and_label_exist(session, room_id=payload.room_id, label_id=payload.label_id)
 
@@ -78,6 +126,15 @@ def update_container(
 
 @router.delete("/{container_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_container(container_id: uuid.UUID, session: Session = Depends(get_db_session)) -> Response:
+    """Delete a container and its related image records.
+
+    Args:
+        container_id: Identifier of the container to delete.
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        Response: Empty `204 No Content` response on success.
+    """
     container = _get_container_or_404(session, container_id)
     session.delete(container)
     _commit_or_raise_conflict(session)
@@ -85,6 +142,18 @@ def delete_container(container_id: uuid.UUID, session: Session = Depends(get_db_
 
 
 def _get_container_or_404(session: Session, container_id: uuid.UUID) -> Container:
+    """Load a container or raise a 404 error.
+
+    Args:
+        session: Active database session to query.
+        container_id: Identifier of the container to load.
+
+    Returns:
+        Container: The matching container record.
+
+    Raises:
+        HTTPException: If the container does not exist.
+    """
     statement = select(Container).options(selectinload(Container.images)).where(Container.id == container_id)
     container = session.execute(statement).scalar_one_or_none()
     if container is None:
@@ -93,6 +162,16 @@ def _get_container_or_404(session: Session, container_id: uuid.UUID) -> Containe
 
 
 def _ensure_room_and_label_exist(session: Session, *, room_id: uuid.UUID, label_id: uuid.UUID) -> None:
+    """Validate that referenced room and label records exist.
+
+    Args:
+        session: Active database session to query.
+        room_id: Identifier of the required room.
+        label_id: Identifier of the required label.
+
+    Raises:
+        HTTPException: If either referenced record does not exist.
+    """
     if session.get(Room, room_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found.")
     if session.get(Label, label_id) is None:
@@ -100,6 +179,14 @@ def _ensure_room_and_label_exist(session: Session, *, room_id: uuid.UUID, label_
 
 
 def _commit_or_raise_conflict(session: Session) -> None:
+    """Commit the current transaction or convert integrity errors to HTTP conflicts.
+
+    Args:
+        session: Active database session to commit.
+
+    Raises:
+        HTTPException: If the commit fails because of an integrity error.
+    """
     try:
         session.commit()
     except IntegrityError as exc:

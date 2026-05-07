@@ -19,6 +19,7 @@ depends_on = None
 
 
 def upgrade() -> None:
+    """Create the initial ContainerScan schema and database triggers."""
     op.create_table(
         "rooms",
         sa.Column("id", postgresql.UUID(as_uuid=True), nullable=False),
@@ -165,6 +166,7 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    """Drop the initial ContainerScan schema and supporting triggers."""
     op.execute("DROP TRIGGER IF EXISTS trg_containers_immutable_code ON containers;")
     op.execute("DROP TRIGGER IF EXISTS trg_containers_updated_at ON containers;")
     op.execute("DROP TRIGGER IF EXISTS trg_containers_search_vector ON containers;")

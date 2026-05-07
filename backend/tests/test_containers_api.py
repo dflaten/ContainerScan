@@ -26,15 +26,32 @@ from schemas import ContainerCreate, ContainerUpdate
 
 @dataclass
 class FakeResult:
+    """Simple query-result wrapper used by container router unit tests."""
+
     items: list[object]
 
     def scalars(self) -> FakeResult:
+        """Return self to mimic SQLAlchemy's scalar result API.
+
+        Returns:
+            FakeResult: The current fake result object.
+        """
         return self
 
     def all(self) -> list[object]:
+        """Return all stored result items.
+
+        Returns:
+            list[object]: The items captured for this fake query result.
+        """
         return self.items
 
     def scalar_one_or_none(self) -> object | None:
+        """Return exactly one item or `None`.
+
+        Returns:
+            object | None: The single matching item, if present.
+        """
         if not self.items:
             return None
         if len(self.items) > 1:
@@ -44,6 +61,8 @@ class FakeResult:
 
 @dataclass
 class FakeSession:
+    """In-memory session stub for container router tests."""
+
     rooms: dict[uuid.UUID, Room] = field(default_factory=dict)
     labels: dict[uuid.UUID, Label] = field(default_factory=dict)
     containers: dict[uuid.UUID, Container] = field(default_factory=dict)
@@ -53,6 +72,14 @@ class FakeSession:
     rollbacks: int = 0
 
     def execute(self, statement: object) -> FakeResult:
+        """Simulate simple `SELECT` queries for containers.
+
+        Args:
+            statement: SQLAlchemy statement to evaluate.
+
+        Returns:
+            FakeResult: Fake scalar result rows matching the statement.
+        """
         entity = statement.column_descriptions[0]["entity"]
         where_criteria = list(statement._where_criteria)
 
@@ -68,9 +95,23 @@ class FakeSession:
         raise AssertionError(f"Unexpected entity: {entity!r}")
 
     def add(self, instance: object) -> None:
+        """Stage one object for insertion on the next commit.
+
+        Args:
+            instance: ORM instance to store when committed.
+        """
         self.pending_add = instance
 
     def get(self, model: type[object], identifier: uuid.UUID) -> object | None:
+        """Look up a room, label, or container by identifier.
+
+        Args:
+            model: ORM type being requested.
+            identifier: Resource identifier to resolve.
+
+        Returns:
+            object | None: The matching resource, if present.
+        """
         if model is Room:
             return self.rooms.get(identifier)
         if model is Label:
@@ -80,6 +121,7 @@ class FakeSession:
         raise AssertionError(f"Unexpected model: {model!r}")
 
     def commit(self) -> None:
+        """Apply staged changes and enforce fake integrity constraints."""
         if isinstance(self.pending_add, Container):
             self._store_container(self.pending_add)
         elif isinstance(self.pending_delete, Container):
@@ -91,22 +133,43 @@ class FakeSession:
         self.pending_delete = None
 
     def refresh(self, _: object) -> None:
+        """Mirror SQLAlchemy's refresh API as a no-op for tests.
+
+        Returns:
+            None: Always returns `None`.
+        """
         return None
 
     def delete(self, instance: object) -> None:
+        """Stage one object for deletion on the next commit.
+
+        Args:
+            instance: ORM instance to remove when committed.
+        """
         self.pending_delete = instance
 
     def rollback(self) -> None:
+        """Clear staged changes and increment the rollback counter."""
         self.pending_add = None
         self.pending_delete = None
         self.rollbacks += 1
 
     def _store_container(self, container: Container) -> None:
+        """Persist a container in the in-memory store.
+
+        Args:
+            container: Container instance to store.
+        """
         if any(existing.code == container.code and existing.id != container.id for existing in self.containers.values()):
             raise _integrity_error()
         self.containers[container.id] = container
 
     def _delete_container(self, container: Container) -> None:
+        """Delete a container and any related image records.
+
+        Args:
+            container: Container instance to delete.
+        """
         self.containers.pop(container.id, None)
         image_ids = [
             image_id for image_id, image in self.images.items() if image.container_id == container.id
@@ -115,20 +178,43 @@ class FakeSession:
             self.images.pop(image_id, None)
 
     def _validate_current_state(self) -> None:
+        """Ensure fake uniqueness constraints still hold after updates."""
         codes = [container.code for container in self.containers.values()]
         if len(codes) != len(set(codes)):
             raise _integrity_error()
 
 
 def _integrity_error() -> IntegrityError:
+    """Construct a generic integrity error for fake-session tests.
+
+    Returns:
+        IntegrityError: Constraint-style error used by router tests.
+    """
     return IntegrityError("statement", {}, Exception("constraint violation"))
 
 
 def _build_room(*, name: str) -> Room:
+    """Build a room fixture object for unit tests.
+
+    Args:
+        name: Room name to assign.
+
+    Returns:
+        Room: Unsaved room instance.
+    """
     return Room(id=uuid.uuid4(), name=name, created_at=datetime.now(timezone.utc))
 
 
 def _build_label(*, name: str, colour: str) -> Label:
+    """Build a label fixture object for unit tests.
+
+    Args:
+        name: Label name to assign.
+        colour: Hex colour value to assign.
+
+    Returns:
+        Label: Unsaved label instance.
+    """
     return Label(
         id=uuid.uuid4(),
         name=name,
@@ -146,6 +232,19 @@ def _build_container(
     created_at: datetime | None = None,
     description: str = "",
 ) -> Container:
+    """Build a container fixture object for unit tests.
+
+    Args:
+        code: Container code to assign.
+        name: Container name to assign.
+        room_id: Related room identifier.
+        label_id: Related label identifier.
+        created_at: Optional creation timestamp override.
+        description: Description text to assign.
+
+    Returns:
+        Container: Unsaved container instance.
+    """
     timestamp = created_at or datetime.now(timezone.utc)
     return Container(
         id=uuid.uuid4(),
@@ -161,6 +260,16 @@ def _build_container(
 
 
 def _build_image(*, container_id: uuid.UUID, sort_order: int, caption: str | None = None) -> Image:
+    """Build an image fixture object for unit tests.
+
+    Args:
+        container_id: Parent container identifier.
+        sort_order: Ordering value for the image.
+        caption: Optional caption text.
+
+    Returns:
+        Image: Unsaved image instance.
+    """
     return Image(
         id=uuid.uuid4(),
         container_id=container_id,
@@ -172,6 +281,7 @@ def _build_image(*, container_id: uuid.UUID, sort_order: int, caption: str | Non
 
 
 def test_container_crud_endpoints_cover_happy_path_and_fk_validation() -> None:
+    """Verify container CRUD behavior, FK validation, and image metadata handling."""
     room = _build_room(name="Garage")
     next_room = _build_room(name="Attic")
     label = _build_label(name="Tools", colour="#AABBCC")
@@ -289,6 +399,7 @@ def test_container_crud_endpoints_cover_happy_path_and_fk_validation() -> None:
 
 
 def test_container_endpoints_raise_not_found_for_missing_records() -> None:
+    """Verify missing container lookups return 404-style errors."""
     room = _build_room(name="Basement")
     label = _build_label(name="Archive", colour="#334455")
     session = FakeSession(rooms={room.id: room}, labels={label.id: label})
