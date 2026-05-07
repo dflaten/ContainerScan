@@ -516,7 +516,8 @@ As of `2026-05-06`, the repository has completed the backend foundation, referen
 - Build task `6` is complete: label CRUD API routes, hex-colour validation, and backend tests are implemented.
 - Build task `7` is complete: container create, list, detail, update, delete, and code-lookup routes are implemented with room/label validation and backend tests.
 - Build task `8` is complete: `GET /api/containers` now supports combined `search`, `room_id`, `label_id`, and `code` filters with backend tests.
-- Build task `9` is the next backend task: add image upload, storage, serving, and image-metadata update operations.
+- Build task `9` is complete: image upload, storage, serving, primary-image semantics, and image-metadata update/delete operations are implemented.
+- Build task `10` is the next backend task: add QR rendering and print-ready PNG generation.
 - Frontend work remains at scaffold level with a placeholder landing page.
 
 | Phase | Deliverable |
