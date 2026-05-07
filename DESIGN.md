@@ -434,7 +434,7 @@ volumes:
 
 ## Project Structure
 
-The tree below represents the intended project layout. As of `2026-05-06`, the repository includes the scaffold, backend foundation files, shared schemas, reference-data routers, and the core container router, but image handling, QR rendering, search/filter behavior, and most frontend routes listed here are still planned rather than implemented.
+The tree below represents the intended project layout. As of `2026-05-06`, the repository includes the scaffold, backend foundation files, shared schemas, reference-data routers, QR and scan support, and the first set of admin frontend routes including the dashboard, container creation flow, and container detail/edit screen.
 
 ```
 containerscan/
@@ -506,7 +506,7 @@ The **Print Sheet** view:
 
 ### Current Progress Snapshot
 
-As of `2026-05-06`, the repository has completed the backend foundation, QR and scan support, the frontend bootstrap, and the first admin dashboard screen:
+As of `2026-05-06`, the repository has completed the backend foundation, QR and scan support, the frontend bootstrap, the admin dashboard, and the first container-management screens:
 
 - Build task `1` is complete: repository scaffold, Docker Compose, Dockerfiles, and Nginx config exist.
 - Build task `2` is complete: FastAPI app bootstrap, config loading, database session wiring, and `/api/health` are in place.
@@ -521,6 +521,8 @@ As of `2026-05-06`, the repository has completed the backend foundation, QR and 
 - Build task `11` is complete: the backend serves the read-only scan data path and mobile scan page.
 - Build task `12` is complete: the SvelteKit frontend bootstrap, shared API helpers, layout shell, and global theme foundation are in place.
 - Build task `13` is complete: the admin dashboard supports live container listing, search, room/label filters, and empty/error/loading states.
+- Build task `14` is complete: the create-container flow supports room/label selection, optional initial image upload, and dashboard refresh after creation.
+- Build task `15` is complete: the container detail screen supports metadata editing, QR download access, and image upload/update/delete management.
 - Development support is improved with a repeatable seed script and a follow-up migration that upgrades older four-character container codes to the current dashed five-character format.
 
 | Phase | Deliverable |
@@ -788,7 +790,21 @@ Responsible for the main container browsing and discovery experience.
 - Render container cards or rows with thumbnail, code, room, and label indicators.
 - Add empty, loading, and error states.
 
-### 14. Container Detail and Edit UI
+### 14. Create Container Flow
+
+Status: complete as of `2026-05-06`.
+
+Responsible for creating new containers from the UI.
+
+- Add a creation flow from the dashboard.
+- Allow room and label selection during creation.
+- Clearly instruct the user that the first uploaded image should show the outside of the container and where it is physically stored.
+- Support initial image upload after create or within the same flow.
+- Refresh the UI state so the new container appears immediately.
+
+### 15. Container Detail and Edit UI
+
+Status: complete as of `2026-05-06`.
 
 Responsible for editing and maintaining container metadata.
 
@@ -798,16 +814,6 @@ Responsible for editing and maintaining container metadata.
 - Clearly explain that the primary image is the exterior/storage-location photo for the container.
 - Add image upload, delete, caption edit, and reorder interactions.
 - Add QR download access from the detail page.
-
-### 15. Create Container Flow
-
-Responsible for creating new containers from the UI.
-
-- Add a creation flow from the dashboard.
-- Allow room and label selection during creation.
-- Clearly instruct the user that the first uploaded image should show the outside of the container and where it is physically stored.
-- Support initial image upload after create or within the same flow.
-- Refresh the UI state so the new container appears immediately.
 
 ### 16. Mobile Scan View UI
 

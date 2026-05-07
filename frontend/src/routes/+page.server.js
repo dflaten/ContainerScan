@@ -1,4 +1,5 @@
-import { createApi, safeRequest } from '$lib/api';
+import { safeRequest } from '$lib/api';
+import { createServerApi } from '$lib/server-api';
 
 function normalizeFilter(value) {
   if (value === null) {
@@ -11,7 +12,7 @@ function normalizeFilter(value) {
 
 export async function load({ fetch, parent, url }) {
   const parentData = await parent();
-  const api = createApi(fetch);
+  const api = createServerApi(fetch);
 
   const filters = {
     search: normalizeFilter(url.searchParams.get('search')),
@@ -28,6 +29,7 @@ export async function load({ fetch, parent, url }) {
   );
 
   return {
+    createdContainerId: normalizeFilter(url.searchParams.get('created')),
     filters,
     containers: containerResult.ok ? containerResult.data : [],
     containerError: containerResult.ok ? null : containerResult.error.detail ?? containerResult.error.message,
