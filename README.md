@@ -56,6 +56,12 @@ Check the current migration version:
 make migrate-status
 ```
 
+Seed the development database with sample rooms, labels, and containers:
+
+```bash
+make seed-dev
+```
+
 Generate a new revision after model changes:
 
 ```bash
