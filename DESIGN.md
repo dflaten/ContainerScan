@@ -730,6 +730,8 @@ Responsible for searchable container listing.
 
 ### 9. Image Upload and Storage
 
+Status: complete as of `2026-05-06`.
+
 Responsible for managing container photos on disk and in the database.
 
 - Implement multipart image upload for a container.
@@ -741,6 +743,8 @@ Responsible for managing container photos on disk and in the database.
 
 ### 10. QR Code Rendering
 
+Status: complete as of `2026-05-06`.
+
 Responsible for generating printable QR label assets.
 
 - Build a QR rendering utility that encodes the stable scan URL.
@@ -749,6 +753,8 @@ Responsible for generating printable QR label assets.
 - Expose a backend endpoint that returns a print-ready PNG.
 
 ### 11. Public Scan View Data Path
+
+Status: complete as of `2026-05-06`.
 
 Responsible for supporting phone-based read-only access from QR scans.
 
