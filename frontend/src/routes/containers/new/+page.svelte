@@ -37,7 +37,7 @@
 </script>
 
 <svelte:head>
-  <title>ContainerScan | Generate Label</title>
+  <title>HomeIndex | Generate Label</title>
 </svelte:head>
 
 <section class="hero-panel">

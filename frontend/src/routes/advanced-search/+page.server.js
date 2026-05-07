@@ -6,8 +6,7 @@ function normalizeFilter(value) {
     return '';
   }
 
-  const normalized = value.trim();
-  return normalized;
+  return value.trim();
 }
 
 export async function load({ fetch, parent, url }) {
@@ -15,18 +14,20 @@ export async function load({ fetch, parent, url }) {
   const api = createServerApi(fetch);
 
   const filters = {
-    search: normalizeFilter(url.searchParams.get('search'))
+    search: normalizeFilter(url.searchParams.get('search')),
+    room_id: normalizeFilter(url.searchParams.get('room_id')),
+    label_id: normalizeFilter(url.searchParams.get('label_id'))
   };
 
   const containerResult = await safeRequest(
     api.listContainers({
-      search: filters.search || undefined
+      search: filters.search || undefined,
+      room_id: filters.room_id || undefined,
+      label_id: filters.label_id || undefined
     })
   );
 
   return {
-    createdContainerId: normalizeFilter(url.searchParams.get('created')),
-    deletedContainerCode: normalizeFilter(url.searchParams.get('deleted')),
     filters,
     containers: containerResult.ok ? containerResult.data : [],
     containerError: containerResult.ok ? null : containerResult.error.detail ?? containerResult.error.message,
