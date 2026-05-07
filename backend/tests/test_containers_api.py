@@ -258,8 +258,8 @@ def _build_container(
     *,
     code: str,
     name: str,
-    room_id: uuid.UUID,
-    label_id: uuid.UUID,
+    room_id: uuid.UUID | None,
+    label_id: uuid.UUID | None,
     created_at: datetime | None = None,
     description: str = "",
 ) -> Container:
@@ -315,7 +315,7 @@ def _build_image(*, container_id: uuid.UUID, sort_order: int, caption: str | Non
 
 
 def test_container_crud_endpoints_cover_happy_path_and_fk_validation() -> None:
-    """Verify container CRUD behavior, FK validation, and image metadata handling."""
+    """Verify container CRUD behavior, label-first creation, FK validation, and image metadata handling."""
     room = _build_room(name="Garage")
     next_room = _build_room(name="Attic")
     label = _build_label(name="Tools", colour="#AABBCC")
@@ -377,6 +377,23 @@ def test_container_crud_endpoints_cover_happy_path_and_fk_validation() -> None:
     assert created.name == "Camping Bin"
     assert created.description == "tent stakes and lanterns"
     assert session.containers[created.id].room_id == next_room.id
+
+    with patch("routers.containers.generate_unique_container_code", return_value="LM-44"):
+        shell_container = create_container(
+            ContainerCreate(
+                name="   ",
+                description="   ",
+                room_id=None,
+                label_id=None,
+            ),
+            session,
+        )
+
+    assert shell_container.code == "LM-44"
+    assert shell_container.name == "Container LM-44"
+    assert shell_container.description == ""
+    assert shell_container.room_id is None
+    assert shell_container.label_id is None
 
     updated = update_container(
         existing_container.id,

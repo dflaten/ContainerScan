@@ -6,6 +6,7 @@ import Page from '../../src/routes/+page.svelte';
 function buildDashboardData(overrides = {}) {
   return {
     createdContainerId: 'container-1',
+    deletedContainerCode: '',
     filters: {
       search: '',
       room_id: '',
@@ -33,7 +34,7 @@ describe('dashboard route', () => {
   test('shows a created-container notice with a detail link', () => {
     render(Page, { data: buildDashboardData() });
 
-    expect(screen.getByText(/created aa-11 for garage box 3\./i)).toBeInTheDocument();
+    expect(screen.getByText(/created aa-11\./i)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /open detail view/i })).toHaveAttribute(
       'href',
       '/containers/container-1'
@@ -50,7 +51,16 @@ describe('dashboard route', () => {
 
     expect(screen.getByText(/no containers matched\./i)).toBeInTheDocument();
     expect(
-      screen.getByText(/add sample data or create your first container to populate the dashboard\./i)
+      screen.getByText(/create your first container to start building the inventory\./i)
     ).toBeInTheDocument();
+  });
+
+  test('shows a deleted-container notice when returning from the detail page', () => {
+    render(
+      Page,
+      { data: buildDashboardData({ createdContainerId: '', deletedContainerCode: 'AA-11' }) }
+    );
+
+    expect(screen.getByText(/deleted container aa-11\./i)).toBeInTheDocument();
   });
 });

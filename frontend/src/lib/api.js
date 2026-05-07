@@ -134,6 +134,11 @@ export function createApi(fetchFn, config = {}) {
         body: JSON.stringify(payload)
       }));
     },
+    deleteContainer(containerId) {
+      return requestJson(fetchFn, `/containers/${containerId}`, createRequestOptions({
+        method: 'DELETE'
+      }));
+    },
     async uploadContainerImages(containerId, { files, captions = [] }) {
       const formData = new FormData();
 

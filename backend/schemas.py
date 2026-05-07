@@ -108,32 +108,29 @@ class LabelRead(APIModel):
     created_at: datetime
 
 
-class ContainerBase(BaseModel):
-    """Shared request fields and validation for container writes."""
+class ContainerCreate(BaseModel):
+    """Request schema for creating a container shell before documentation is complete."""
 
-    name: str
+    name: str | None = None
     description: str = ""
-    room_id: uuid.UUID
-    label_id: uuid.UUID
+    room_id: uuid.UUID | None = None
+    label_id: uuid.UUID | None = None
 
     @field_validator("name")
     @classmethod
-    def validate_name(cls, value: str) -> str:
-        """Normalize and validate a required container name.
+    def normalize_optional_name(cls, value: str | None) -> str | None:
+        """Trim an optional container name and collapse blanks to `None`.
 
         Args:
-            value: Raw name value from the request payload.
+            value: Raw optional name value from the request payload.
 
         Returns:
-            str: The trimmed name value.
-
-        Raises:
-            ValueError: If the normalized name is empty.
+            str | None: The trimmed name value, or `None` when left blank.
         """
+        if value is None:
+            return None
         normalized = value.strip()
-        if not normalized:
-            raise ValueError("Name must not be empty.")
-        return normalized
+        return normalized or None
 
     @field_validator("description")
     @classmethod
@@ -149,16 +146,28 @@ class ContainerBase(BaseModel):
         return value.strip()
 
 
-class ContainerCreate(ContainerBase):
-    """Request schema for creating a container."""
+class ContainerUpdate(BaseModel):
+    """Request schema for updating mutable container metadata."""
 
-    pass
+    name: str
+    description: str = ""
+    room_id: uuid.UUID | None = None
+    label_id: uuid.UUID | None = None
 
+    @field_validator("name")
+    @classmethod
+    def validate_name(cls, value: str) -> str:
+        """Normalize and validate a required container name."""
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Name must not be empty.")
+        return normalized
 
-class ContainerUpdate(ContainerBase):
-    """Request schema for updating a container."""
-
-    pass
+    @field_validator("description")
+    @classmethod
+    def normalize_update_description(cls, value: str) -> str:
+        """Trim container description text."""
+        return value.strip()
 
 
 class ImageRead(APIModel):
@@ -198,8 +207,8 @@ class ContainerRead(APIModel):
     code: str
     name: str
     description: str
-    room_id: uuid.UUID
-    label_id: uuid.UUID
+    room_id: uuid.UUID | None
+    label_id: uuid.UUID | None
     created_at: datetime
     updated_at: datetime
     images: list[ImageRead] = Field(default_factory=list)
@@ -227,6 +236,6 @@ class ScanContainerRead(APIModel):
     code: str
     name: str
     description: str
-    room: ScanRoomRead
-    label: ScanLabelRead
+    room: ScanRoomRead | None
+    label: ScanLabelRead | None
     images: list[ImageRead] = Field(default_factory=list)

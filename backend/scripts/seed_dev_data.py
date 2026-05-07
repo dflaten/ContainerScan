@@ -18,9 +18,8 @@ class SeedContainer:
 
 
 ROOM_NAMES = [
-    "Garage North Wall",
-    "Office Closet",
-    "Guest Room",
+    "Basement",
+    "Garage",
 ]
 
 LABELS = [
@@ -34,28 +33,28 @@ CONTAINERS = [
         code="HN-01",
         name="Holiday Lights",
         description="Extension cords, warm white string lights, and outdoor timer plugs.",
-        room_name="Garage North Wall",
+        room_name="Garage",
         label_name="Holiday",
     ),
     SeedContainer(
         code="AR-02",
         name="Tax Archive 2023",
         description="Receipts, signed returns, and scanned backup media for the 2023 filing year.",
-        room_name="Office Closet",
+        room_name="Basement",
         label_name="Archive",
     ),
     SeedContainer(
         code="EL-03",
         name="Camera Gear",
         description="Mirrorless body, two prime lenses, spare batteries, chargers, and SD cards.",
-        room_name="Guest Room",
+        room_name="Basement",
         label_name="Electronics",
     ),
     SeedContainer(
         code="AR-04",
         name="House Manuals",
         description="Appliance manuals, paint codes, spare keys, and contractor warranty paperwork.",
-        room_name="Office Closet",
+        room_name="Garage",
         label_name="Archive",
     ),
 ]

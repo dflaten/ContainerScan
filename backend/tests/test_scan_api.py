@@ -139,6 +139,33 @@ def test_render_scan_view_returns_mobile_friendly_read_only_html() -> None:
     assert "Primary exterior" in html
 
 
+def test_render_scan_view_handles_not_yet_documented_containers() -> None:
+    """Verify scan HTML uses placeholder metadata for incomplete containers."""
+    now = datetime.now(timezone.utc)
+    container = Container(
+        id=uuid.uuid4(),
+        code="LM-44",
+        name="Container LM-44",
+        description="",
+        room_id=None,
+        label_id=None,
+        created_at=now,
+        updated_at=now,
+        room=None,
+        label=None,
+        images=[],
+    )
+    session = FakeSession(containers={container.id: container})
+
+    response = render_scan_view(container.id, session)
+    html = response.body.decode("utf-8")
+
+    assert response.status_code == 200
+    assert "Unassigned Room" in html
+    assert "Unlabeled" in html
+    assert "This container has not been documented yet." in html
+
+
 def test_scan_routes_raise_not_found_for_missing_container() -> None:
     """Verify missing scan resources return a 404-style error."""
     session = FakeSession()

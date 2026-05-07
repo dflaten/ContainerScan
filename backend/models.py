@@ -61,15 +61,15 @@ class Container(Base):
     code: Mapped[str] = mapped_column(CHAR(5), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
-    room_id: Mapped[uuid.UUID] = mapped_column(
+    room_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("rooms.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
     )
-    label_id: Mapped[uuid.UUID] = mapped_column(
+    label_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("labels.id", ondelete="RESTRICT"),
-        nullable=False,
+        nullable=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -87,8 +87,8 @@ class Container(Base):
         server_default=text("''::tsvector"),
     )
 
-    room: Mapped[Room] = relationship(back_populates="containers")
-    label: Mapped[Label] = relationship(back_populates="containers")
+    room: Mapped[Room | None] = relationship(back_populates="containers")
+    label: Mapped[Label | None] = relationship(back_populates="containers")
     images: Mapped[list["Image"]] = relationship(
         back_populates="container",
         cascade="all, delete-orphan",

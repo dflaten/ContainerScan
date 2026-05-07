@@ -5,11 +5,17 @@ const mocks = vi.hoisted(() => ({
   api: {
     getContainer: vi.fn(),
     updateContainer: vi.fn(),
+    deleteContainer: vi.fn(),
     uploadContainerImages: vi.fn(),
     updateImage: vi.fn(),
     deleteImage: vi.fn(),
     getQrDownloadPath: vi.fn((containerId) => `/api/containers/${containerId}/qr`)
-  }
+  },
+  goto: vi.fn()
+}));
+
+vi.mock('$app/navigation', () => ({
+  goto: mocks.goto
 }));
 
 vi.mock('$lib/api', () => ({
@@ -45,7 +51,6 @@ function buildData(overrides = {}) {
     container: buildContainer(),
     containerError: null,
     createdNotice: false,
-    imageUploadErrorNotice: false,
     rooms: [{ id: 'room-1', name: 'Garage' }],
     labels: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
     ...overrides
@@ -56,23 +61,22 @@ describe('container detail route', () => {
   beforeEach(() => {
     mocks.api.getContainer.mockReset();
     mocks.api.updateContainer.mockReset();
+    mocks.api.deleteContainer.mockReset();
     mocks.api.uploadContainerImages.mockReset();
     mocks.api.updateImage.mockReset();
     mocks.api.deleteImage.mockReset();
+    mocks.goto.mockReset();
+    vi.restoreAllMocks();
   });
 
-  test('shows the initial image-upload retry notice after partial create success', () => {
+  test('shows the label-ready notice after creating a shell container', () => {
     render(Page, {
       data: buildData({
-        createdNotice: true,
-        imageUploadErrorNotice: true
+        createdNotice: true
       })
     });
 
-    expect(screen.getByText(/container created\. you can keep editing it here\./i)).toBeInTheDocument();
-    expect(
-      screen.getByText(/the container was created, but the initial image upload did not complete\./i)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/label ready\. download it now/i)).toBeInTheDocument();
   });
 
   test('saves metadata updates through the container api and shows a success notice', async () => {
@@ -100,5 +104,19 @@ describe('container detail route', () => {
     });
 
     expect(screen.getByText(/container details updated\./i)).toBeInTheDocument();
+  });
+
+  test('deletes the container after confirmation and redirects to the dashboard', async () => {
+    mocks.api.deleteContainer.mockResolvedValue(null);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(Page, { data: buildData() });
+
+    await fireEvent.click(screen.getByRole('button', { name: /delete container/i }));
+
+    await waitFor(() => {
+      expect(mocks.api.deleteContainer).toHaveBeenCalledWith('container-1');
+    });
+    expect(mocks.goto).toHaveBeenCalledWith('/?deleted=AA-11');
   });
 });
