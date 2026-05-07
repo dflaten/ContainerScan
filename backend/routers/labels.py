@@ -16,11 +16,28 @@ router = APIRouter(prefix="/api/labels", tags=["labels"])
 
 @router.get("", response_model=list[LabelRead])
 def list_labels(session: Session = Depends(get_db_session)) -> list[Label]:
+    """List all labels sorted by name.
+
+    Args:
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        list[Label]: All persisted labels in ascending name order.
+    """
     return session.execute(select(Label).order_by(Label.name.asc())).scalars().all()
 
 
 @router.post("", response_model=LabelRead, status_code=status.HTTP_201_CREATED)
 def create_label(payload: LabelCreate, session: Session = Depends(get_db_session)) -> Label:
+    """Create a new label.
+
+    Args:
+        payload: Validated label creation request.
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        Label: The newly created label record.
+    """
     label = Label(name=payload.name, colour=payload.colour)
     session.add(label)
     _commit_or_raise_conflict(session, conflict_message="Label name already exists.")
@@ -34,6 +51,19 @@ def update_label(
     payload: LabelUpdate,
     session: Session = Depends(get_db_session),
 ) -> Label:
+    """Update an existing label.
+
+    Args:
+        label_id: Identifier of the label to update.
+        payload: Validated label update request.
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        Label: The updated label record.
+
+    Raises:
+        HTTPException: If the label does not exist.
+    """
     label = session.get(Label, label_id)
     if label is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found.")
@@ -47,6 +77,18 @@ def update_label(
 
 @router.delete("/{label_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_label(label_id: uuid.UUID, session: Session = Depends(get_db_session)) -> Response:
+    """Delete a label when it is no longer referenced.
+
+    Args:
+        label_id: Identifier of the label to delete.
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        Response: Empty `204 No Content` response on success.
+
+    Raises:
+        HTTPException: If the label does not exist.
+    """
     label = session.get(Label, label_id)
     if label is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found.")
@@ -60,6 +102,15 @@ def delete_label(label_id: uuid.UUID, session: Session = Depends(get_db_session)
 
 
 def _commit_or_raise_conflict(session: Session, conflict_message: str) -> None:
+    """Commit the current transaction or convert integrity errors to HTTP conflicts.
+
+    Args:
+        session: Active database session to commit.
+        conflict_message: Error detail to return on integrity conflicts.
+
+    Raises:
+        HTTPException: If the commit fails because of an integrity error.
+    """
     try:
         session.commit()
     except IntegrityError as exc:

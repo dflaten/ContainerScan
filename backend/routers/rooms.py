@@ -16,11 +16,28 @@ router = APIRouter(prefix="/api/rooms", tags=["rooms"])
 
 @router.get("", response_model=list[RoomRead])
 def list_rooms(session: Session = Depends(get_db_session)) -> list[Room]:
+    """List all rooms sorted by name.
+
+    Args:
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        list[Room]: All persisted rooms in ascending name order.
+    """
     return session.execute(select(Room).order_by(Room.name.asc())).scalars().all()
 
 
 @router.post("", response_model=RoomRead, status_code=status.HTTP_201_CREATED)
 def create_room(payload: RoomCreate, session: Session = Depends(get_db_session)) -> Room:
+    """Create a new room.
+
+    Args:
+        payload: Validated room creation request.
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        Room: The newly created room record.
+    """
     room = Room(name=payload.name)
     session.add(room)
     _commit_or_raise_conflict(session, duplicate_message="Room name already exists.")
@@ -34,6 +51,19 @@ def update_room(
     payload: RoomUpdate,
     session: Session = Depends(get_db_session),
 ) -> Room:
+    """Rename an existing room.
+
+    Args:
+        room_id: Identifier of the room to update.
+        payload: Validated room update request.
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        Room: The updated room record.
+
+    Raises:
+        HTTPException: If the room does not exist.
+    """
     room = session.get(Room, room_id)
     if room is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found.")
@@ -46,6 +76,18 @@ def update_room(
 
 @router.delete("/{room_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_room(room_id: uuid.UUID, session: Session = Depends(get_db_session)) -> Response:
+    """Delete a room when it is no longer referenced.
+
+    Args:
+        room_id: Identifier of the room to delete.
+        session: Active database session injected by FastAPI.
+
+    Returns:
+        Response: Empty `204 No Content` response on success.
+
+    Raises:
+        HTTPException: If the room does not exist.
+    """
     room = session.get(Room, room_id)
     if room is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found.")
@@ -59,6 +101,15 @@ def delete_room(room_id: uuid.UUID, session: Session = Depends(get_db_session)) 
 
 
 def _commit_or_raise_conflict(session: Session, duplicate_message: str) -> None:
+    """Commit the current transaction or convert integrity errors to HTTP conflicts.
+
+    Args:
+        session: Active database session to commit.
+        duplicate_message: Error detail to return on integrity conflicts.
+
+    Raises:
+        HTTPException: If the commit fails because of an integrity error.
+    """
     try:
         session.commit()
     except IntegrityError as exc:

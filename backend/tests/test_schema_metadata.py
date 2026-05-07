@@ -9,6 +9,7 @@ from models import Container
 
 
 def test_container_room_and_label_relationships_are_required() -> None:
+    """Verify that container room and label foreign keys are mandatory."""
     room_id = Container.__table__.c.room_id
     label_id = Container.__table__.c.label_id
 
@@ -23,6 +24,7 @@ def test_container_room_and_label_relationships_are_required() -> None:
 
 
 def test_initial_migration_enforces_immutable_container_codes() -> None:
+    """Verify the initial migration includes the immutable container code trigger."""
     migration = Path(__file__).resolve().parents[1] / "alembic" / "versions" / "0001_initial_schema.py"
     migration_text = migration.read_text()
 

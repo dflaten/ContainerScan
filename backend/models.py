@@ -11,6 +11,8 @@ from database import Base
 
 
 class Room(Base):
+    """Database model for a physical storage location."""
+
     __tablename__ = "rooms"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -25,6 +27,8 @@ class Room(Base):
 
 
 class Label(Base):
+    """Database model for a user-defined colour label."""
+
     __tablename__ = "labels"
     __table_args__ = (
         CheckConstraint(r"colour ~ '^#[0-9A-Fa-f]{6}$'", name="ck_labels_colour_hex"),
@@ -43,6 +47,8 @@ class Label(Base):
 
 
 class Container(Base):
+    """Database model for a stored container and its metadata."""
+
     __tablename__ = "containers"
     __table_args__ = (
         CheckConstraint(r"code ~ '^[A-Z0-9]{2}-[A-Z0-9]{2}$'", name="ck_containers_code_format"),
@@ -92,6 +98,8 @@ class Container(Base):
 
 
 class Image(Base):
+    """Database model for an image attached to a container."""
+
     __tablename__ = "images"
     __table_args__ = (
         Index("ix_images_container_id", "container_id"),
