@@ -497,7 +497,7 @@ The **Print Sheet** view:
 
 ### Current Progress Snapshot
 
-As of `2026-05-06`, the repository has completed the backend foundation, reference-data APIs, and the core container CRUD slice:
+As of `2026-05-06`, the repository has completed the backend foundation, reference-data APIs, the core container CRUD slice, and container search/filter support:
 
 - Build task `1` is complete: repository scaffold, Docker Compose, Dockerfiles, and Nginx config exist.
 - Build task `2` is complete: FastAPI app bootstrap, config loading, database session wiring, and `/api/health` are in place.
@@ -506,7 +506,8 @@ As of `2026-05-06`, the repository has completed the backend foundation, referen
 - Build task `5` is complete: room CRUD API routes, shared schemas, validation, and backend tests are implemented.
 - Build task `6` is complete: label CRUD API routes, hex-colour validation, and backend tests are implemented.
 - Build task `7` is complete: container create, list, detail, update, delete, and code-lookup routes are implemented with room/label validation and backend tests.
-- Build task `8` is the next backend task: add search and filtering to `GET /api/containers`.
+- Build task `8` is complete: `GET /api/containers` now supports combined `search`, `room_id`, `label_id`, and `code` filters with backend tests.
+- Build task `9` is the next backend task: add image upload, storage, serving, and image-metadata update operations.
 - Frontend work remains at scaffold level with a placeholder landing page.
 
 | Phase | Deliverable |
@@ -706,6 +707,8 @@ Responsible for the core container lifecycle.
 - Ensure deletes also clean up related image records and, once task `9` exists, stored files.
 
 ### 8. Search and Filtering
+
+Status: complete as of `2026-05-06`.
 
 Responsible for searchable container listing.
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -16,19 +16,32 @@ router = APIRouter(prefix="/api/containers", tags=["containers"])
 
 
 @router.get("", response_model=list[ContainerRead])
-def list_containers(session: Session = Depends(get_db_session)) -> list[Container]:
+def list_containers(
+    session: Session = Depends(get_db_session),
+    search: str | None = None,
+    room_id: uuid.UUID | None = None,
+    label_id: uuid.UUID | None = None,
+    code: str | None = None,
+) -> list[Container]:
     """List all containers with image metadata preloaded.
 
     Args:
+        search: Optional full-text search string for code, name, and description.
+        room_id: Optional room filter.
+        label_id: Optional label filter.
+        code: Optional exact container code filter.
         session: Active database session injected by FastAPI.
 
     Returns:
-        list[Container]: Containers ordered from newest to oldest.
+        list[Container]: Containers ordered from newest to oldest after filters are applied.
     """
-    statement = (
-        select(Container)
-        .options(selectinload(Container.images))
-        .order_by(Container.created_at.desc(), Container.code.asc())
+    normalized_search = _normalize_optional_text(search)
+    normalized_code = _normalize_optional_code(code)
+    statement = _build_container_list_statement(
+        search=normalized_search,
+        room_id=room_id,
+        label_id=label_id,
+        code=normalized_code,
     )
     return session.execute(statement).scalars().all()
 
@@ -161,6 +174,59 @@ def _get_container_or_404(session: Session, container_id: uuid.UUID) -> Containe
     return container
 
 
+def _build_container_list_statement(
+    *,
+    search: str | None,
+    room_id: uuid.UUID | None,
+    label_id: uuid.UUID | None,
+    code: str | None,
+):
+    """Build the container listing query with optional search and filters.
+
+    Args:
+        search: Optional full-text search string for code, name, and description.
+        room_id: Optional room filter.
+        label_id: Optional label filter.
+        code: Optional exact container code filter.
+
+    Returns:
+        Select: SQLAlchemy select statement configured for the requested filters.
+    """
+    statement = (
+        select(Container)
+        .options(selectinload(Container.images))
+        .order_by(Container.created_at.desc(), Container.code.asc())
+    )
+
+    if search is not None:
+        english_query = func.plainto_tsquery("english", search)
+        simple_query = func.plainto_tsquery("simple", search)
+        statement = statement.where(
+            or_(
+                Container.search_vector.op("@@")(english_query),
+                Container.search_vector.op("@@")(simple_query),
+            )
+        )
+
+    if room_id is not None:
+        statement = statement.where(Container.room_id == room_id)
+
+    if label_id is not None:
+        statement = statement.where(Container.label_id == label_id)
+
+    if code is not None:
+        statement = statement.where(Container.code == code)
+
+    return statement.execution_options(
+        containerscan_filters={
+            "search": search,
+            "room_id": room_id,
+            "label_id": label_id,
+            "code": code,
+        }
+    )
+
+
 def _ensure_room_and_label_exist(session: Session, *, room_id: uuid.UUID, label_id: uuid.UUID) -> None:
     """Validate that referenced room and label records exist.
 
@@ -176,6 +242,37 @@ def _ensure_room_and_label_exist(session: Session, *, room_id: uuid.UUID, label_
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found.")
     if session.get(Label, label_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found.")
+
+
+def _normalize_optional_text(value: str | None) -> str | None:
+    """Normalize an optional free-text query parameter.
+
+    Args:
+        value: Raw query parameter value.
+
+    Returns:
+        str | None: Trimmed text or `None` when the value is blank.
+    """
+    if value is None:
+        return None
+
+    normalized = value.strip()
+    return normalized or None
+
+
+def _normalize_optional_code(value: str | None) -> str | None:
+    """Normalize an optional container code query parameter.
+
+    Args:
+        value: Raw query parameter value.
+
+    Returns:
+        str | None: Uppercased code or `None` when the value is blank.
+    """
+    normalized = _normalize_optional_text(value)
+    if normalized is None:
+        return None
+    return normalized.upper()
 
 
 def _commit_or_raise_conflict(session: Session) -> None:
