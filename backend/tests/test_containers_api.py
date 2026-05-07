@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import re
 import sys
 from unittest.mock import patch
 import uuid
@@ -81,11 +82,24 @@ class FakeSession:
             FakeResult: Fake scalar result rows matching the statement.
         """
         entity = statement.column_descriptions[0]["entity"]
+        filters = statement.get_execution_options().get("containerscan_filters", {})
         where_criteria = list(statement._where_criteria)
 
         if entity is Container:
             items = list(self.containers.values())
+            if filters.get("search") is not None:
+                items = [
+                    item for item in items if _container_matches_search(item, filters["search"])
+                ]
+            if filters.get("room_id") is not None:
+                items = [item for item in items if item.room_id == filters["room_id"]]
+            if filters.get("label_id") is not None:
+                items = [item for item in items if item.label_id == filters["label_id"]]
+            if filters.get("code") is not None:
+                items = [item for item in items if item.code == filters["code"]]
             for criterion in where_criteria:
+                if not hasattr(criterion, "left") or not hasattr(criterion, "right"):
+                    continue
                 column_name = criterion.left.name
                 value = criterion.right.value
                 items = [item for item in items if getattr(item, column_name) == value]
@@ -191,6 +205,21 @@ def _integrity_error() -> IntegrityError:
         IntegrityError: Constraint-style error used by router tests.
     """
     return IntegrityError("statement", {}, Exception("constraint violation"))
+
+
+def _container_matches_search(container: Container, search: str) -> bool:
+    """Check whether a fake container matches a full-text-style search string.
+
+    Args:
+        container: Container to evaluate.
+        search: Search text to match against code, name, and description.
+
+    Returns:
+        bool: `True` when all normalized search terms are present.
+    """
+    terms = re.findall(r"[a-z0-9]+", search.lower())
+    haystack = " ".join([container.code, container.name, container.description]).lower()
+    return all(term in haystack for term in terms)
 
 
 def _build_room(*, name: str) -> Room:
@@ -427,3 +456,68 @@ def test_container_endpoints_raise_not_found_for_missing_records() -> None:
         assert exc.detail == "Container not found."
     else:
         raise AssertionError("Expected missing container delete to raise HTTPException")
+
+
+def test_list_containers_supports_search_and_combined_filters() -> None:
+    """Verify container listing supports search, code, room, and label filters together."""
+    garage = _build_room(name="Garage")
+    attic = _build_room(name="Attic")
+    tools = _build_label(name="Tools", colour="#AABBCC")
+    seasonal = _build_label(name="Seasonal", colour="#112233")
+    base_time = datetime.now(timezone.utc)
+
+    hardware = _build_container(
+        code="AA-11",
+        name="Hardware Bin",
+        room_id=garage.id,
+        label_id=tools.id,
+        created_at=base_time - timedelta(days=2),
+        description="screws bolts nails",
+    )
+    camping = _build_container(
+        code="BC-23",
+        name="Camping Gear",
+        room_id=attic.id,
+        label_id=seasonal.id,
+        created_at=base_time - timedelta(days=1),
+        description="tent stakes lantern",
+    )
+    holiday = _build_container(
+        code="ZX-90",
+        name="Holiday Lights",
+        room_id=garage.id,
+        label_id=seasonal.id,
+        created_at=base_time,
+        description="christmas lights extension cords",
+    )
+
+    session = FakeSession(
+        rooms={garage.id: garage, attic.id: attic},
+        labels={tools.id: tools, seasonal.id: seasonal},
+        containers={
+            hardware.id: hardware,
+            camping.id: camping,
+            holiday.id: holiday,
+        },
+    )
+
+    assert [item.code for item in list_containers(search="tent", session=session)] == ["BC-23"]
+    assert [item.code for item in list_containers(search="zx-90", session=session)] == ["ZX-90"]
+    assert [item.code for item in list_containers(room_id=garage.id, session=session)] == ["ZX-90", "AA-11"]
+    assert [item.code for item in list_containers(label_id=seasonal.id, session=session)] == ["ZX-90", "BC-23"]
+    assert [item.code for item in list_containers(code=" bc-23 ", session=session)] == ["BC-23"]
+    assert [
+        item.code
+        for item in list_containers(
+            search="lights",
+            room_id=garage.id,
+            label_id=seasonal.id,
+            code="zx-90",
+            session=session,
+        )
+    ] == ["ZX-90"]
+    assert [item.code for item in list_containers(search="   ", code="   ", session=session)] == [
+        "ZX-90",
+        "BC-23",
+        "AA-11",
+    ]
