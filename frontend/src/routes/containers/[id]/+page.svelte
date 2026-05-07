@@ -1,4 +1,5 @@
 <script>
+  import { goto } from '$app/navigation';
   import { createApi } from '$lib/api';
 
   export let data;
@@ -7,13 +8,13 @@
 
   let container = data.container;
   let metadataError = null;
-  let metadataNotice = data.createdNotice ? 'Container created. You can keep editing it here.' : null;
-  let imageNotice = null;
-  let imageError = data.imageUploadErrorNotice
-    ? data.imageUploadErrorMessage ||
-      'The container was created, but the initial image upload did not complete. You can retry here.'
+  let metadataNotice = data.createdNotice
+    ? 'Label ready. Download it now, then add the container details whenever you pack it.'
     : null;
+  let imageNotice = null;
+  let imageError = null;
   let isSavingMetadata = false;
+  let isDeletingContainer = false;
   let isUploadingImages = false;
   let uploadFiles;
   let form = buildForm(container);
@@ -62,7 +63,11 @@
     isSavingMetadata = true;
 
     try {
-      container = await api.updateContainer(container.id, form);
+      container = await api.updateContainer(container.id, {
+        ...form,
+        room_id: form.room_id || null,
+        label_id: form.label_id || null
+      });
       form = buildForm(container);
       metadataNotice = 'Container details updated.';
     } catch (error) {
@@ -124,11 +129,41 @@
   }
 
   function roomNameFor(roomId) {
-    return data.rooms.find((room) => room.id === roomId)?.name ?? 'Unknown room';
+    return data.rooms.find((room) => room.id === roomId)?.name ?? 'Not set';
   }
 
   function labelFor(labelId) {
     return data.labels.find((label) => label.id === labelId) ?? null;
+  }
+
+  function isDraftContainer() {
+    return (
+      !container.description &&
+      !container.room_id &&
+      !container.label_id &&
+      container.images.length === 0 &&
+      container.name === `Container ${container.code}`
+    );
+  }
+
+  async function handleContainerDelete() {
+    metadataError = null;
+    metadataNotice = null;
+
+    if (!window.confirm(`Delete container ${container.code}? This also removes its images.`)) {
+      return;
+    }
+
+    isDeletingContainer = true;
+
+    try {
+      const deletedCode = container.code;
+      await api.deleteContainer(container.id);
+      await goto(`/?deleted=${encodeURIComponent(deletedCode)}`);
+    } catch (error) {
+      metadataError = error.detail ?? error.message ?? 'Unable to delete the container.';
+      isDeletingContainer = false;
+    }
   }
 </script>
 
@@ -139,7 +174,7 @@
 {#if data.containerError || !container}
   <section class="panel">
     <div class="panel-heading">
-      <span class="eyebrow">Task 14</span>
+      <span class="eyebrow">Container</span>
       <h2>Container detail</h2>
     </div>
 
@@ -152,11 +187,10 @@
   {@const currentLabel = labelFor(form.label_id)}
 
   <section class="hero-panel">
-    <span class="eyebrow">Task 14</span>
+    <span class="eyebrow">Container</span>
     <h1>{container.name}</h1>
     <p>
-      Maintain the container metadata, keep the image set ordered, and download the QR label from
-      the same screen.
+      Download the label, then fill in the contents, storage location, and photos from the same screen.
     </p>
 
     <div class="detail-topline">
@@ -174,6 +208,13 @@
       <a class="secondary-link" href="/">Back to dashboard</a>
       <a class="primary-link" href={api.getQrDownloadPath(container.id)}>Download QR Label</a>
     </div>
+
+    {#if isDraftContainer()}
+      <div class="notice-banner">
+        This container is still a blank record. Attach the printed label, then come back and add the
+        contents, location, and photos.
+      </div>
+    {/if}
   </section>
 
   <section class="content-grid detail-grid">
@@ -215,7 +256,8 @@
           <div class="editor-columns">
             <label class="field">
               <span>Room</span>
-              <select bind:value={form.room_id} required>
+              <select bind:value={form.room_id}>
+                <option value="">Not set</option>
                 {#each data.rooms as room}
                   <option value={room.id}>{room.name}</option>
                 {/each}
@@ -224,7 +266,8 @@
 
             <label class="field">
               <span>Label</span>
-              <select bind:value={form.label_id} required>
+              <select bind:value={form.label_id}>
+                <option value="">Not set</option>
                 {#each data.labels as label}
                   <option value={label.id}>{label.name}</option>
                 {/each}
@@ -238,14 +281,21 @@
             <span class="eyebrow">Primary Photo</span>
             <h3>Keep the outside visible</h3>
             <p>
-              The primary image should show the exterior of the container and where it is stored.
-              Contents photos can follow after that.
+              Start with an exterior photo once the label is attached. Contents photos can follow after that.
             </p>
           </div>
 
           <div class="form-actions">
             <button type="submit" disabled={isSavingMetadata}>
               {isSavingMetadata ? 'Saving…' : 'Save Changes'}
+            </button>
+            <button
+              class="button-danger"
+              type="button"
+              disabled={isDeletingContainer}
+              on:click={handleContainerDelete}
+            >
+              {isDeletingContainer ? 'Deleting…' : 'Delete Container'}
             </button>
           </div>
         </aside>

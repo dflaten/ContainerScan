@@ -61,10 +61,11 @@ def create_container(payload: ContainerCreate, session: Session = Depends(get_db
         Container: The newly created container record.
     """
     _ensure_room_and_label_exist(session, room_id=payload.room_id, label_id=payload.label_id)
+    code = generate_unique_container_code(session)
 
     container = Container(
-        code=generate_unique_container_code(session),
-        name=payload.name,
+        code=code,
+        name=payload.name or f"Container {code}",
         description=payload.description,
         room_id=payload.room_id,
         label_id=payload.label_id,
@@ -262,7 +263,12 @@ def _build_container_list_statement(
     )
 
 
-def _ensure_room_and_label_exist(session: Session, *, room_id: uuid.UUID, label_id: uuid.UUID) -> None:
+def _ensure_room_and_label_exist(
+    session: Session,
+    *,
+    room_id: uuid.UUID | None,
+    label_id: uuid.UUID | None,
+) -> None:
     """Validate that referenced room and label records exist.
 
     Args:
@@ -273,9 +279,9 @@ def _ensure_room_and_label_exist(session: Session, *, room_id: uuid.UUID, label_
     Raises:
         HTTPException: If either referenced record does not exist.
     """
-    if session.get(Room, room_id) is None:
+    if room_id is not None and session.get(Room, room_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found.")
-    if session.get(Label, label_id) is None:
+    if label_id is not None and session.get(Label, label_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found.")
 
 

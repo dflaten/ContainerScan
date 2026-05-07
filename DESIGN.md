@@ -30,7 +30,7 @@ A self-hosted, locally-run web service for managing QR codes linked to physical 
 
 **ContainerScan** lets you:
 
-- Generate and print QR codes linked to physical containers
+- Generate and print QR codes before a container is fully documented
 - Each container is assigned a unique **4-character container code** displayed prominently on its label
 - Upload and associate images with each container
 - Write and update rich descriptions per container
@@ -153,15 +153,17 @@ This design document covers both the long-term target architecture and the curre
 |---|---|---|
 | `id` | UUID (PK) | Unique container identifier |
 | `code` | CHAR(5) | Auto-generated unique 4-character container code with a middle dash (e.g. `KX-B7`), immutable after creation |
-| `name` | VARCHAR | Human-readable label (e.g. "Garage Box 3") |
+| `name` | VARCHAR | Human-readable label; defaults to a generated placeholder such as `Container KX-B7` until edited |
 | `description` | TEXT | Editable free-text description of contents |
-| `room_id` | UUID (FK) | Assigned room → `rooms.id` |
-| `label_id` | UUID (FK) | Assigned colour label → `labels.id` |
+| `room_id` | UUID (FK) | Optional assigned room → `rooms.id` |
+| `label_id` | UUID (FK) | Optional assigned colour label → `labels.id` |
 | `created_at` | TIMESTAMP | Creation date |
 | `updated_at` | TIMESTAMP | Last updated date |
 | `search_vector` | TSVECTOR | PostgreSQL full-text search index (name + description + code) |
 
 > The `code` column is a unique, auto-generated 4-character uppercase alphanumeric code with a dash in the middle (for example `KX-B7`) assigned at container creation. It is indexed for fast lookup, included in search, and remains stable for the life of the container so printed labels do not become misleading.
+
+> Container creation is intentionally **label-first**: the system must be able to create a container record with only a generated code and placeholder name so the QR label can be printed before the user has packed the box or recorded its contents.
 
 ### `images`
 
@@ -237,21 +239,22 @@ This design document covers both the long-term target architecture and the curre
 
 ## User Stories
 
-1. As a homeowner, I want to create a container with a generated container code so that I can label and identify it quickly.
-2. As a homeowner, I want to assign a container to a room so that I know where it is stored.
-3. As a homeowner, I want to apply a colour label to a container so that related containers are easier to recognise at a glance.
-4. As a homeowner, I want to write and edit a description for a container so that I can record what is inside without opening it.
-5. As a homeowner, I want to upload multiple photos for a container so that I can visually confirm its contents from my phone or desktop browser.
-6. As a homeowner, I want to reorder and caption container images so that the most useful photos appear first and have context.
-7. As a homeowner, I want to search containers by keyword or container code so that I can find a specific box quickly.
-8. As a homeowner, I want to search by what is inside a container and see the container's 4-character code in the results so that I can identify the right box without scanning it first.
-9. As a homeowner, I want to filter containers by room or colour label so that I can narrow down large lists efficiently.
-10. As a homeowner, I want to open a container detail page and edit its metadata so that the system stays accurate over time.
-11. As a homeowner, I want to download a print-ready QR label for a container so that I can attach it to the physical box.
-12. As a homeowner, I want to print multiple QR labels on a single sheet so that label creation is efficient.
-13. As a person scanning a container, I want a QR code to open a mobile-friendly page on my local network so that I can inspect the container without installing an app.
-14. As a person scanning a container, I want to see the container code, name, room, description, and images immediately so that I can confirm I have the right container.
-15. As the system owner, I want the application to stay local-network-only so that my data is not exposed to the public internet.
+1. As a homeowner, I want to generate a container code and QR label before I have packed the box so that I can label physical containers first.
+2. As a homeowner, I want newly generated labels to appear in the system immediately so that I can come back later and finish documenting them.
+3. As a homeowner, I want to assign a container to a room so that I know where it is stored.
+4. As a homeowner, I want to apply a colour label to a container so that related containers are easier to recognise at a glance.
+5. As a homeowner, I want to write and edit a description for a container so that I can record what is inside without opening it.
+6. As a homeowner, I want to upload multiple photos for a container so that I can visually confirm its contents from my phone or desktop browser.
+7. As a homeowner, I want to reorder and caption container images so that the most useful photos appear first and have context.
+8. As a homeowner, I want to search containers by keyword or container code so that I can find a specific box quickly.
+9. As a homeowner, I want to search by what is inside a container and see the container's 4-character code in the results so that I can identify the right box without scanning it first.
+10. As a homeowner, I want to filter containers by room or colour label so that I can narrow down large lists efficiently.
+11. As a homeowner, I want to open a container detail page and edit its metadata so that the system stays accurate over time.
+12. As a homeowner, I want to download a print-ready QR label for a container so that I can attach it to the physical box.
+13. As a homeowner, I want to print multiple QR labels on a single sheet so that label creation is efficient.
+14. As a person scanning a container, I want a QR code to open a mobile-friendly page on my local network so that I can inspect the container without installing an app.
+15. As a person scanning a container, I want to see the container code, name, room, description, and images immediately so that I can confirm I have the right container.
+16. As the system owner, I want the application to stay local-network-only so that my data is not exposed to the public internet.
 
 ---
 
@@ -260,13 +263,20 @@ This design document covers both the long-term target architecture and the curre
 ### Creating a Container
 
 1. Open the admin UI at `http://containerscan.local` (or another LAN hostname mapped to the server)
-2. Click **New Container** → enter a name and description
-3. Select a **room** from the dropdown (or create one inline)
-4. Select a **colour label** from the dropdown (or create one inline)
-5. Upload one or more photos of the container's contents
-   - The first uploaded image should be the outside of the container showing where it is physically stored
-   - Additional uploaded images can show the contents inside the container
-6. Click **Save** — a unique container code is automatically assigned
+2. Click **Generate Label**
+3. Optionally enter a quick name, room, or colour label if those details are already known
+4. Click **Generate Container Label** — a unique container code is automatically assigned and stored immediately
+5. Open the new container detail view and click **Download QR Label**
+6. Print and attach the label to the physical container
+
+### Filling in a Container Later
+
+1. After the box is packed, open the container from the dashboard or scan its QR code
+2. Update the name if needed and add the description of what is inside
+3. Assign the room and colour label if they were not known earlier
+4. Upload the exterior/storage-location photo first
+5. Upload any additional contents photos after that
+6. Save changes — the QR code URL and container code remain unchanged
 
 ### Printing a QR Code
 
@@ -342,8 +352,10 @@ Each printed QR label is rendered as a tile with three visual layers:
 
 ### Admin View (`/`)
 
+- Primary CTA focused on generating labels before boxes are fully documented
 - Search bar (real-time full-text search including container code)
 - Filter sidebar: filter by room, filter by colour label
+- Separate emphasis for containers that still need details after label generation
 - Container grid/list with thumbnail preview, 4-letter code badge, room badge, and colour label indicator
 - Search results must surface the 4-character container code clearly so users can identify a box from its contents without opening it
 - Create, edit, and delete containers
@@ -353,16 +365,16 @@ Each printed QR label is rendered as a tile with three visual layers:
 ### Container Detail / Edit View (`/containers/{id}`)
 
 - Container code displayed prominently (read-only)
+- Download QR label action kept visible near the top of the screen
 - Editable name field
 - Editable description (multi-line text area)
-- Room selector dropdown
-- Colour label selector (colour swatches)
-- Drag-and-drop image upload and reordering
+- Room selector dropdown, optional until the user knows the storage location
+- Colour label selector (colour swatches), optional until chosen
+- Image upload and reordering
 - The first image slot should be clearly labeled as the primary exterior/storage-location photo
 - Additional image slots should be presented as contents photos
 - Individual image delete and caption edit
-- QR code download button
-- Last updated timestamp
+- Clear guidance for newly generated containers that have not been documented yet
 
 ### Scan View (`/scan/{id}`)
 
@@ -506,7 +518,7 @@ The **Print Sheet** view:
 
 ### Current Progress Snapshot
 
-As of `2026-05-06`, the repository has completed the backend foundation, QR and scan support, the frontend bootstrap, the admin dashboard, and the first container-management screens:
+As of `2026-05-07`, the repository has completed the backend foundation, QR and scan support, the frontend bootstrap, the label-first admin dashboard, and the first container-management screens:
 
 - Build task `1` is complete: repository scaffold, Docker Compose, Dockerfiles, and Nginx config exist.
 - Build task `2` is complete: FastAPI app bootstrap, config loading, database session wiring, and `/api/health` are in place.
@@ -514,16 +526,16 @@ As of `2026-05-06`, the repository has completed the backend foundation, QR and 
 - Build task `4` is complete: unique dashed container code generation utility and tests for format and collision handling are implemented.
 - Build task `5` is complete: room CRUD API routes, shared schemas, validation, and backend tests are implemented.
 - Build task `6` is complete: label CRUD API routes, hex-colour validation, and backend tests are implemented.
-- Build task `7` is complete: container create, list, detail, update, delete, and code-lookup routes are implemented with room/label validation and backend tests.
+- Build task `7` is complete: container create, list, detail, update, delete, and code-lookup routes are implemented, including label-first shell-container creation with optional room/label assignment and backend tests.
 - Build task `8` is complete: `GET /api/containers` now supports combined `search`, `room_id`, `label_id`, and `code` filters with backend tests.
 - Build task `9` is complete: image upload, storage, serving, primary-image semantics, and image-metadata update/delete operations are implemented.
 - Build task `10` is complete: QR rendering and print-ready label PNG generation are implemented.
 - Build task `11` is complete: the backend serves the read-only scan data path and mobile scan page.
 - Build task `12` is complete: the SvelteKit frontend bootstrap, shared API helpers, layout shell, and global theme foundation are in place.
-- Build task `13` is complete: the admin dashboard supports live container listing, search, room/label filters, and empty/error/loading states.
-- Build task `14` is complete: the create-container flow supports room/label selection, optional initial image upload, and dashboard refresh after creation.
-- Build task `15` is complete: the container detail screen supports metadata editing, QR download access, and image upload/update/delete management.
-- Development support is improved with a repeatable seed script and a follow-up migration that upgrades older four-character container codes to the current dashed five-character format.
+- Build task `13` is complete: the admin dashboard supports live container listing, dynamic search, room/label filters, separation of generated-but-undocumented containers from documented containers, and empty/error/loading states.
+- Build task `14` is complete: the create-container flow now centers on generating a container label first, with optional quick metadata and redirect into the detail page for later documentation.
+- Build task `15` is complete: the container detail screen supports metadata editing, QR download access, draft-container guidance, delete actions, and image upload/update/delete management.
+- Development support is improved with a repeatable seed script, updated seeded default rooms (`Basement` and `Garage`), and follow-up migrations that upgrade older four-character container codes and relax room/label assignment requirements for the label-first flow.
 
 | Phase | Deliverable |
 |---|---|
@@ -711,13 +723,13 @@ Responsible for colour label management.
 
 ### 7. Container CRUD API
 
-Status: complete as of `2026-05-06`.
+Status: complete as of `2026-05-07`.
 
 Responsible for the core container lifecycle.
 
 - Implement container create, list, detail, update, and delete endpoints.
 - Generate the immutable container code during create.
-- Support room and label assignment through foreign keys.
+- Support room and label assignment through foreign keys when known, while allowing shell containers to be created before those details exist.
 - Return image metadata with container detail responses.
 - Ensure deletes also clean up related image records and, once task `9` exists, stored files.
 
@@ -781,39 +793,44 @@ Responsible for the application shell and frontend development foundation.
 
 ### 13. Admin Dashboard UI
 
-Status: complete as of `2026-05-06`.
+Status: complete as of `2026-05-07`.
 
 Responsible for the main container browsing and discovery experience.
 
 - Build the dashboard route for container listing.
 - Add the search bar, room filter, and label filter controls.
+- Apply search dynamically while typing and apply room/label filters immediately on change.
+- Separate generated-but-undocumented containers from documented containers so the label-first workflow remains visible.
 - Render container cards or rows with thumbnail, code, room, and label indicators.
 - Add empty, loading, and error states.
 
 ### 14. Create Container Flow
 
-Status: complete as of `2026-05-06`.
+Status: complete as of `2026-05-07`.
 
-Responsible for creating new containers from the UI.
+Responsible for generating new container labels and records from the UI.
 
 - Add a creation flow from the dashboard.
-- Allow room and label selection during creation.
-- Clearly instruct the user that the first uploaded image should show the outside of the container and where it is physically stored.
-- Support initial image upload after create or within the same flow.
-- Refresh the UI state so the new container appears immediately.
+- Generate the container code immediately and persist the record before the box is documented.
+- Allow quick name, room, and label assignment during creation, but keep them optional.
+- Redirect the user into the detail page after creation so QR download and later documentation happen in one place.
+- Make the create flow optimize for “generate, print, attach” rather than “fully describe now.”
 
 ### 15. Container Detail and Edit UI
 
-Status: complete as of `2026-05-06`.
+Status: complete as of `2026-05-07`.
 
 Responsible for editing and maintaining container metadata.
 
 - Build the `/containers/[id]` route.
 - Show the immutable code prominently.
 - Add form controls for name, description, room, and label.
+- Keep room and label optional so partially documented containers remain valid.
+- Show clear guidance when a container still exists only as a generated label record.
 - Clearly explain that the primary image is the exterior/storage-location photo for the container.
 - Add image upload, delete, caption edit, and reorder interactions.
 - Add QR download access from the detail page.
+- Add delete-container support from the detail page.
 
 ### 16. Mobile Scan View UI
 

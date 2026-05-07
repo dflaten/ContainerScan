@@ -29,7 +29,11 @@ def render_scan_view(container_id: uuid.UUID, session: Session = Depends(get_db_
     room_name = container.room.name if container.room is not None else "Unassigned Room"
     label_name = container.label.name if container.label is not None else "Unlabeled"
     label_colour = container.label.colour if container.label is not None else "#4B5563"
-    description = escape(container.description) if container.description else "No description recorded."
+    description = (
+        escape(container.description)
+        if container.description
+        else "This container has not been documented yet."
+    )
 
     image_markup = "".join(
         (

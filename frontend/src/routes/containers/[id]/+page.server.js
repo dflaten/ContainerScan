@@ -12,8 +12,6 @@ export async function load({ fetch, params, parent, url }) {
       ? null
       : containerResult.error.detail ?? containerResult.error.message,
     createdNotice: url.searchParams.get('created') === '1',
-    imageUploadErrorNotice: url.searchParams.get('image_upload_error') === '1',
-    imageUploadErrorMessage: url.searchParams.get('image_upload_error_message'),
     labels: parentData.labels,
     rooms: parentData.rooms
   };

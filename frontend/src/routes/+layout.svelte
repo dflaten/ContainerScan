@@ -17,10 +17,10 @@
     <div>
       <a class="brand-mark" href="/">
         <span class="brand-kicker">ContainerScan</span>
-        <strong>Admin frontend bootstrap</strong>
+        <strong>Household container inventory</strong>
       </a>
       <p class="brand-summary">
-        SvelteKit app shell configured for the single-origin LAN deployment model.
+        Label boxes, track where they live, and pull them up quickly from any device on your local network.
       </p>
     </div>
 

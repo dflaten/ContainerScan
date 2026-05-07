@@ -30,6 +30,7 @@ export async function load({ fetch, parent, url }) {
 
   return {
     createdContainerId: normalizeFilter(url.searchParams.get('created')),
+    deletedContainerCode: normalizeFilter(url.searchParams.get('deleted')),
     filters,
     containers: containerResult.ok ? containerResult.data : [],
     containerError: containerResult.ok ? null : containerResult.error.detail ?? containerResult.error.message,

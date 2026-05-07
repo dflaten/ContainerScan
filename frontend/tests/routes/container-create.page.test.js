@@ -4,8 +4,7 @@ import { beforeEach, describe, expect, test, vi } from 'vitest';
 const mocks = vi.hoisted(() => ({
   goto: vi.fn(),
   api: {
-    createContainer: vi.fn(),
-    uploadContainerImages: vi.fn()
+    createContainer: vi.fn()
   }
 }));
 
@@ -31,10 +30,9 @@ describe('create container route', () => {
   beforeEach(() => {
     mocks.goto.mockReset();
     mocks.api.createContainer.mockReset();
-    mocks.api.uploadContainerImages.mockReset();
   });
 
-  test('shows a reference-data warning when rooms or labels are unavailable', () => {
+  test('allows generating a label even when rooms or labels are unavailable', () => {
     render(Page, {
       data: buildData({
         rooms: [],
@@ -42,26 +40,26 @@ describe('create container route', () => {
       })
     });
 
-    expect(screen.getByText(/reference data required/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /generate container label/i })).toBeInTheDocument();
   });
 
-  test('redirects to the detail page when image upload fails after container creation', async () => {
+  test('redirects to the detail page after creating a new shell container', async () => {
     mocks.api.createContainer.mockResolvedValue({ id: 'container-7' });
-    mocks.api.uploadContainerImages.mockRejectedValue(new Error('upload failed'));
 
     render(Page, { data: buildData() });
-    const file = new File(['image-bytes'], 'front.jpg', { type: 'image/jpeg' });
 
-    await fireEvent.input(screen.getByLabelText('Name'), {
+    await fireEvent.input(screen.getByPlaceholderText(/optional, for example garage bin/i), {
       target: { value: 'Garage Box 7' }
     });
-    await fireEvent.change(document.querySelector('input[type="file"]'), {
-      target: { files: [file] }
-    });
-    await fireEvent.click(screen.getByRole('button', { name: /create container/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /generate container label/i }));
 
     await waitFor(() => {
-      expect(mocks.goto).toHaveBeenCalledWith('/containers/container-7?created=1&image_upload_error=1');
+      expect(mocks.api.createContainer).toHaveBeenCalledWith({
+        name: 'Garage Box 7',
+        room_id: null,
+        label_id: null
+      });
     });
+    expect(mocks.goto).toHaveBeenCalledWith('/containers/container-7?created=1');
   });
 });
