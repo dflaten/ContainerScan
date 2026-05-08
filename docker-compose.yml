@@ -1,36 +1,57 @@
+name: containerscan
+
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: containerscan
-      POSTGRES_USER: cs_user
-      POSTGRES_PASSWORD: cs_pass
+      POSTGRES_DB: ${CONTAINERSCAN_DB_NAME:-containerscan}
+      POSTGRES_USER: ${CONTAINERSCAN_DB_USER:-cs_user}
+      POSTGRES_PASSWORD: ${CONTAINERSCAN_DB_PASSWORD:-cs_pass}
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - ${CONTAINERSCAN_DB_DATA_LOCATION:-db_data}:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${CONTAINERSCAN_DB_USER:-cs_user} -d ${CONTAINERSCAN_DB_NAME:-containerscan} || exit 1"
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   backend:
     build: ./backend
+    restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql+psycopg://cs_user:cs_pass@db:5432/containerscan
+      DATABASE_URL: postgresql+psycopg://${CONTAINERSCAN_DB_USER:-cs_user}:${CONTAINERSCAN_DB_PASSWORD:-cs_pass}@db:5432/${CONTAINERSCAN_DB_NAME:-containerscan}
       IMAGE_STORAGE_PATH: /app/images
-      PUBLIC_BASE_URL: http://containerscan.local
+      PUBLIC_BASE_URL: ${CONTAINERSCAN_PUBLIC_BASE_URL:-http://containerscan.local}
+    command:
+      - /bin/sh
+      - -c
+      - uv run alembic upgrade head && uv run uvicorn main:app --host 0.0.0.0 --port 8000
     volumes:
-      - image_data:/app/images
+      - ${CONTAINERSCAN_IMAGE_DATA_LOCATION:-image_data}:/app/images
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
+    restart: unless-stopped
     environment:
-      ORIGIN: http://containerscan.local
+      ORIGIN: ${CONTAINERSCAN_PUBLIC_BASE_URL:-http://containerscan.local}
       INTERNAL_API_URL: http://backend:8000
     depends_on:
       - backend
 
   nginx:
     image: nginx:alpine
+    restart: unless-stopped
     ports:
-      - "80:80"
+      - "${CONTAINERSCAN_HTTP_PORT:-80}:80"
     volumes:
       - ./deploy/nginx.conf:/etc/nginx/conf.d/default.conf:ro
     depends_on:

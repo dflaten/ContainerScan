@@ -535,6 +535,9 @@ As of `2026-05-07`, the repository has completed the backend foundation, QR and 
 - Build task `13` is complete: the admin dashboard supports live container listing, dynamic search, room/label filters, separation of generated-but-undocumented containers from documented containers, and empty/error/loading states.
 - Build task `14` is complete: the create-container flow now centers on generating a container label first, with optional quick metadata and redirect into the detail page for later documentation.
 - Build task `15` is complete: the container detail screen supports metadata editing, QR download access, draft-container guidance, delete actions, and image upload/update/delete management.
+- Build task `16` is complete: the SvelteKit scan view now server-renders `/scan/[id]`, supports mobile-friendly image paging, full-size image viewing, and a direct jump into container editing after scanning a newly attached label.
+- Build task `17` is complete: the frontend print flow now supports multi-select label printing, a dedicated `/print` route, 3 inch by 3 inch label layout, and print-specific styling for a 9 by 12 inch sheet.
+- The frontend search experience has also been refined into a search-first landing page plus a dedicated advanced-search route, and the visible product name has been updated to `HomeIndex`.
 - Development support is improved with a repeatable seed script, updated seeded default rooms (`Basement` and `Garage`), and follow-up migrations that upgrade older four-character container codes and relax room/label assignment requirements for the label-first flow.
 
 | Phase | Deliverable |
@@ -546,8 +549,8 @@ As of `2026-05-07`, the repository has completed the backend foundation, QR and 
 | 5 | Image upload, storage, reordering, and serving |
 | 6 | Full-text search via `GET /api/containers` (including code field) with room and label filters |
 | 7 | SvelteKit + Skeleton admin UI (create, edit, search, filter, download QR) |
-| 8 | Mobile scan view (`/scan/{id}`) with label colour header and code displayed |
-| 9 | Print sheet layout with colour backgrounds and code headers |
+| 8 | Mobile scan view (`/scan/{id}`) with label colour header, image paging, and edit jump |
+| 9 | Print sheet layout with colour backgrounds, code headers, and fixed-size label printing |
 | 10 | Polish: drag-and-drop upload, inline room/label creation, delete confirmation, print styling |
 
 ---
@@ -836,19 +839,26 @@ Responsible for editing and maintaining container metadata.
 
 Responsible for the phone-optimized container viewer.
 
+Status: Complete as of `2026-05-07`.
+
 - Build the `/scan/[id]` route in SvelteKit.
 - Server-render the initial page load.
 - Display code, name, room, description, and images with minimal UI chrome.
 - Ensure the view remains usable on smaller screens and slower devices.
+- Add image pagination and a full-size image viewer for mobile browsing.
+- Include a direct link into the edit/detail screen so a freshly scanned label can be documented immediately.
 
 ### 17. Print Sheet UI
 
 Responsible for batch label printing from the frontend.
 
+Status: Complete as of `2026-05-07`.
+
 - Build the `/print` route.
 - Allow selecting multiple containers for one print run.
 - Render labels in a printable page grid.
 - Add print-specific styling and verify the layout on paper sizes you plan to use.
+- Support 3 inch by 3 inch labels packed onto a 9 by 12 inch sheet.
 
 ### 18. Nginx Reverse Proxy Configuration
 

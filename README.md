@@ -42,6 +42,46 @@ To also remove the database volume:
 make dev-reset
 ```
 
+## Server Deployment
+
+Use the repository's own `docker-compose.yml` for deployment. Do not use `docker-compose.dev.yml` on the server.
+
+Copy the sample env file:
+
+```bash
+cp .env.example .env
+```
+
+Set at least:
+
+- `CONTAINERSCAN_HTTP_PORT`
+- `CONTAINERSCAN_PUBLIC_BASE_URL`
+- `CONTAINERSCAN_DB_DATA_LOCATION`
+- `CONTAINERSCAN_IMAGE_DATA_LOCATION`
+- `CONTAINERSCAN_DB_NAME`
+- `CONTAINERSCAN_DB_USER`
+- `CONTAINERSCAN_DB_PASSWORD`
+
+Create the persistent directories before first start:
+
+```bash
+sudo mkdir -p /srv/containerscan/postgres /srv/containerscan/images
+sudo chown -R 1000:1000 /srv/containerscan/images
+```
+
+Then start the stack:
+
+```bash
+docker compose up -d --build
+```
+
+Important deployment notes:
+
+- `CONTAINERSCAN_PUBLIC_BASE_URL` must match the durable LAN URL you want printed into QR codes.
+- If you change the hostname or port later, old QR labels will still point at the old address.
+- The backend runs `alembic upgrade head` automatically during container startup.
+- The default sample port is `8088`, which avoids assuming host port `80` is free.
+
 ## Database Migrations
 
 Start the stack first so Postgres is available, then run migrations in the backend container:
