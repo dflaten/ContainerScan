@@ -214,6 +214,91 @@ class ContainerRead(APIModel):
     images: list[ImageRead] = Field(default_factory=list)
 
 
+class PrintSheetCreate(BaseModel):
+    """Request schema for saving a previewed group of labels as one sheet."""
+
+    container_ids: list[uuid.UUID] = Field(min_length=1)
+
+    @field_validator("container_ids")
+    @classmethod
+    def validate_container_ids(cls, value: list[uuid.UUID]) -> list[uuid.UUID]:
+        """Require at least one unique container and preserve the submitted order."""
+        seen: set[uuid.UUID] = set()
+        ordered_ids: list[uuid.UUID] = []
+
+        for container_id in value:
+            if container_id in seen:
+                continue
+            seen.add(container_id)
+            ordered_ids.append(container_id)
+
+        if not ordered_ids:
+            raise ValueError("At least one container must be selected.")
+
+        return ordered_ids
+
+
+class PrintSheetContainerRead(APIModel):
+    """Container fields needed to render a saved print sheet preview."""
+
+    id: uuid.UUID
+    code: str
+    name: str
+    room_id: uuid.UUID | None
+    label_id: uuid.UUID | None
+
+
+class PrintSheetRead(APIModel):
+    """Saved print sheet metadata and ordered container labels."""
+
+    id: uuid.UUID
+    created_at: datetime
+    containers: list[PrintSheetContainerRead] = Field(default_factory=list)
+
+
+class DraftPrintLabelRead(BaseModel):
+    """One provisional label shown in a full-sheet preview before persistence."""
+
+    id: uuid.UUID
+    code: str
+    name: str
+    room_id: uuid.UUID | None = None
+    label_id: uuid.UUID | None = None
+
+
+class DraftPrintSheetRead(BaseModel):
+    """A non-persisted preview for one generated full sheet of labels."""
+
+    containers: list[DraftPrintLabelRead] = Field(default_factory=list)
+
+
+class FullSheetCreate(BaseModel):
+    """Request schema for creating a full page of brand-new labels from a draft preview."""
+
+    drafts: list[DraftPrintLabelRead] = Field(min_length=1)
+
+    @field_validator("drafts")
+    @classmethod
+    def validate_drafts(cls, value: list[DraftPrintLabelRead]) -> list[DraftPrintLabelRead]:
+        """Normalize draft codes and drop duplicate draft ids while preserving order."""
+        seen_ids: set[uuid.UUID] = set()
+        seen_codes: set[str] = set()
+        ordered_drafts: list[DraftPrintLabelRead] = []
+
+        for draft in value:
+            draft.code = draft.code.strip().upper()
+            if not draft.code or draft.id in seen_ids or draft.code in seen_codes:
+                continue
+            seen_ids.add(draft.id)
+            seen_codes.add(draft.code)
+            ordered_drafts.append(draft)
+
+        if not ordered_drafts:
+            raise ValueError("At least one draft label is required.")
+
+        return ordered_drafts
+
+
 class ScanRoomRead(APIModel):
     """Read-only room metadata exposed to public scan views."""
 

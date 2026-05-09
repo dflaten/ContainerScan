@@ -95,6 +95,7 @@ class Container(Base):
         passive_deletes=True,
         order_by="Image.sort_order",
     )
+    print_sheet_items: Mapped[list["PrintSheetItem"]] = relationship(back_populates="container")
 
 
 class Image(Base):
@@ -128,3 +129,55 @@ class Image(Base):
     def url(self) -> str:
         """Return the relative URL used to serve this stored image."""
         return f"/images/{self.filename}"
+
+
+class PrintSheet(Base):
+    """Database model for a saved printable sheet of container labels."""
+
+    __tablename__ = "print_sheets"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+    items: Mapped[list["PrintSheetItem"]] = relationship(
+        back_populates="print_sheet",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
+        order_by="PrintSheetItem.sort_order",
+    )
+
+    @property
+    def containers(self) -> list[Container]:
+        """Expose ordered containers for API serialization and print previews."""
+        return [item.container for item in self.items]
+
+
+class PrintSheetItem(Base):
+    """Join model preserving container order within one saved print sheet."""
+
+    __tablename__ = "print_sheet_items"
+    __table_args__ = (
+        Index("ix_print_sheet_items_print_sheet_id", "print_sheet_id"),
+        Index("ix_print_sheet_items_container_id", "container_id"),
+        Index("ix_print_sheet_items_sheet_sort_order", "print_sheet_id", "sort_order"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    print_sheet_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("print_sheets.id", ondelete="CASCADE"),
+        nullable=False,
+    )
+    container_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("containers.id", ondelete="RESTRICT"),
+        nullable=False,
+    )
+    sort_order: Mapped[int] = mapped_column(Integer, nullable=False)
+
+    print_sheet: Mapped[PrintSheet] = relationship(back_populates="items")
+    container: Mapped[Container] = relationship(back_populates="print_sheet_items")

@@ -71,6 +71,20 @@ def render_qr_label_png(
     return buffer.getvalue()
 
 
+def render_qr_code_png(*, container_id: uuid.UUID, size: int = 420) -> bytes:
+    """Render only the QR code itself as PNG bytes for sheet previews."""
+    import qrcode
+    from PIL import Image
+
+    scan_url = build_scan_url(container_id)
+    qr_image = qrcode.make(scan_url).convert("RGB")
+    qr_image = qr_image.resize((size, size), Image.Resampling.NEAREST)
+
+    buffer = BytesIO()
+    qr_image.save(buffer, format="PNG", optimize=True)
+    return buffer.getvalue()
+
+
 def _load_font(*, size: int, bold: bool) -> object:
     """Load a bundled TrueType font when available, otherwise fall back."""
     from PIL import ImageFont

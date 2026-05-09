@@ -13,7 +13,7 @@ from models import Container, Label, Room
 from schemas import ContainerCreate, ContainerRead, ContainerUpdate
 from utils.code_generator import generate_unique_container_code
 from utils.image_storage import delete_stored_image
-from utils.qr_labels import render_qr_label_png
+from utils.qr_labels import render_qr_code_png, render_qr_label_png
 
 router = APIRouter(prefix="/api/containers", tags=["containers"])
 
@@ -91,12 +91,13 @@ def get_container(container_id: uuid.UUID, session: Session = Depends(get_db_ses
     return container
 
 
-@router.get("/{container_id}/qr")
-def download_container_qr_label(
+def _render_container_qr_label_response(
     container_id: uuid.UUID,
-    session: Session = Depends(get_db_session),
+    session: Session,
+    *,
+    as_attachment: bool,
 ) -> Response:
-    """Generate and return a printable QR label PNG for one container."""
+    """Generate one QR label PNG response in either inline or download mode."""
     container = _get_container_or_404(session, container_id)
     room_name = container.room.name if container.room is not None else "Unassigned Room"
     label_colour = container.label.colour if container.label is not None else "#FFFFFF"
@@ -107,8 +108,41 @@ def download_container_qr_label(
         room_name=room_name,
         label_colour=label_colour,
     )
-    headers = {"Content-Disposition": f'attachment; filename="{container.code}-label.png"'}
+    headers = (
+        {"Content-Disposition": f'attachment; filename="{container.code}-label.png"'}
+        if as_attachment
+        else {}
+    )
     return Response(content=png_bytes, media_type="image/png", headers=headers)
+
+
+@router.get("/{container_id}/qr")
+def download_container_qr_label(
+    container_id: uuid.UUID,
+    session: Session = Depends(get_db_session),
+) -> Response:
+    """Generate and return a printable QR label PNG as a download."""
+    return _render_container_qr_label_response(container_id, session, as_attachment=True)
+
+
+@router.get("/{container_id}/qr/inline")
+def view_container_qr_label(
+    container_id: uuid.UUID,
+    session: Session = Depends(get_db_session),
+) -> Response:
+    """Generate and return a printable QR label PNG for inline image use."""
+    return _render_container_qr_label_response(container_id, session, as_attachment=False)
+
+
+@router.get("/{container_id}/qr-code/inline")
+def view_container_qr_code(
+    container_id: uuid.UUID,
+    session: Session = Depends(get_db_session),
+) -> Response:
+    """Generate and return only the QR code PNG for sheet preview tiles."""
+    container = _get_container_or_404(session, container_id)
+    png_bytes = render_qr_code_png(container_id=container.id)
+    return Response(content=png_bytes, media_type="image/png")
 
 
 @router.get("/code/{code}", response_model=ContainerRead)

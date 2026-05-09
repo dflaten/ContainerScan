@@ -19,6 +19,7 @@ function buildData(overrides = {}) {
     containers: [buildContainer(), buildContainer({ id: 'container-2', code: 'BB-22' })],
     labels: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
     printError: null,
+    qrImageUrls: { 'container-1': 'data:image/png;base64,abc123' },
     rooms: [{ id: 'room-1', name: 'Garage' }],
     selectedIds: ['container-1'],
     selectedContainers: [buildContainer()],
@@ -35,7 +36,7 @@ describe('print route', () => {
     ).toBeInTheDocument();
     expect(screen.getByAltText(/qr label for aa-11/i)).toHaveAttribute(
       'src',
-      '/api/containers/container-1/qr'
+      'data:image/png;base64,abc123'
     );
   });
 
@@ -56,7 +57,7 @@ describe('print route', () => {
     const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
 
     render(Page, { data: buildData() });
-    await fireEvent.click(screen.getByRole('button', { name: /print selected labels/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /print current preview/i }));
 
     expect(printSpy).toHaveBeenCalled();
   });
