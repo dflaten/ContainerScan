@@ -48,9 +48,11 @@
       </div>
     </div>
 
-    <p class="brand-summary">
-      Label boxes, track where they live, and pull them up quickly from any device on your local network.
-    </p>
+    {#if page.url.pathname === '/'}
+      <p class="brand-summary">
+        Label boxes, track where they live, and pull them up quickly from any device on your local network.
+      </p>
+    {/if}
   </header>
 
   <main

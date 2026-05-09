@@ -4,19 +4,14 @@ import { env } from '$env/dynamic/private';
 import { safeRequest } from '$lib/api';
 import { createServerApi } from '$lib/server-api';
 
-const LABELS_PER_PAGE = 6;
-
 export async function load({ fetch, parent, url }) {
   const parentData = await parent();
   const api = createServerApi(fetch);
   const internalApiBaseUrl = (env.INTERNAL_API_URL ?? 'http://backend:8000').replace(/\/$/, '');
-  const containerResult = await safeRequest(api.listContainers());
   const sheetId = url.searchParams.get('sheet');
   const draftCodes = url.searchParams.getAll('draft_code');
-  const selectedIds = url.searchParams.getAll('id');
   const sheetResult = sheetId ? await safeRequest(api.getPrintSheet(sheetId)) : null;
 
-  const containers = containerResult.ok ? containerResult.data : [];
   const savedSheet = sheetResult?.ok ? sheetResult.data : null;
   const draftSheet = draftCodes.length > 0
     ? {
@@ -30,31 +25,19 @@ export async function load({ fetch, parent, url }) {
         }))
       }
     : null;
-  const selectedContainers = savedSheet
-    ? savedSheet.containers
-    : draftSheet
-      ? draftSheet.containers
-    : containers.filter((container) => selectedIds.includes(container.id)).slice(0, LABELS_PER_PAGE);
-  const activeSelectedIds = savedSheet ? savedSheet.containers.map((container) => container.id) : selectedIds;
+  const selectedContainers = savedSheet ? savedSheet.containers : draftSheet ? draftSheet.containers : [];
   const printError = sheetResult && !sheetResult.ok
     ? sheetResult.error.detail ?? sheetResult.error.message
-    : containerResult.ok
-      ? null
-      : containerResult.error.detail ?? containerResult.error.message;
+    : null;
   const qrImageUrls = await buildQrImageUrls(fetch, internalApiBaseUrl, selectedContainers);
 
   return {
     app: parentData.app,
-    containers,
     createdFullSheet: url.searchParams.get('generated') === '1',
-    labels: parentData.labels,
-    createdSheet: url.searchParams.get('created') === '1',
     draftSheet,
     printError,
-    rooms: parentData.rooms,
     qrImageUrls,
     savedSheet,
-    selectedIds: activeSelectedIds,
     selectedContainers
   };
 }
@@ -77,40 +60,6 @@ export const actions = {
     }
 
     throw redirect(303, `/print?${params.toString()}`);
-  },
-  createSheet: async ({ fetch, request }) => {
-    const api = createServerApi(fetch);
-    const formData = await request.formData();
-    const selectedIds = formData
-      .getAll('id')
-      .map((value) => String(value).trim())
-      .filter((value) => value.length > 0);
-
-    if (selectedIds.length === 0) {
-      return fail(400, {
-        createSheetError: 'Select at least one label before creating a saved sheet.'
-      });
-    }
-
-    if (selectedIds.length > LABELS_PER_PAGE) {
-      return fail(400, {
-        createSheetError: `Only ${LABELS_PER_PAGE} labels fit on one sheet. Reduce the selection before creating it.`
-      });
-    }
-
-    const result = await safeRequest(
-      api.createPrintSheet({
-        container_ids: selectedIds
-      })
-    );
-
-    if (!result.ok) {
-      return fail(result.error.status ?? 500, {
-        createSheetError: result.error.detail ?? result.error.message
-      });
-    }
-
-    throw redirect(303, `/print?sheet=${result.data.id}&created=1`);
   },
   createFullSheet: async ({ fetch, request }) => {
     const api = createServerApi(fetch);
