@@ -113,6 +113,23 @@ export function createApi(fetchFn, config = {}) {
     listContainers(filters = {}) {
       return requestJson(fetchFn, '/containers', createRequestOptions({ query: filters }));
     },
+    getPrintSheet(printSheetId) {
+      return requestJson(fetchFn, `/print-sheets/${printSheetId}`, createRequestOptions());
+    },
+    previewFullSheetDraft() {
+      return requestJson(fetchFn, '/print-sheets/drafts/full-sheet', createRequestOptions({
+        method: 'POST'
+      }));
+    },
+    createFullSheet(payload) {
+      return requestJson(fetchFn, '/print-sheets/generated/full-sheet', createRequestOptions({
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      }));
+    },
     createContainer(payload) {
       return requestJson(fetchFn, '/containers', createRequestOptions({
         method: 'POST',
