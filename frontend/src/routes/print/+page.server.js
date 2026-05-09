@@ -4,8 +4,7 @@ import { env } from '$env/dynamic/private';
 import { safeRequest } from '$lib/api';
 import { createServerApi } from '$lib/server-api';
 
-export async function load({ fetch, parent, url }) {
-  const parentData = await parent();
+export async function load({ fetch, url }) {
   const api = createServerApi(fetch);
   const internalApiBaseUrl = (env.INTERNAL_API_URL ?? 'http://backend:8000').replace(/\/$/, '');
   const sheetId = url.searchParams.get('sheet');
@@ -32,7 +31,6 @@ export async function load({ fetch, parent, url }) {
   const qrImageUrls = await buildQrImageUrls(fetch, internalApiBaseUrl, selectedContainers);
 
   return {
-    app: parentData.app,
     createdFullSheet: url.searchParams.get('generated') === '1',
     draftSheet,
     printError,

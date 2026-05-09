@@ -16,12 +16,8 @@ function buildContainer(overrides = {}) {
 
 function buildData(overrides = {}) {
   return {
-    containers: [buildContainer(), buildContainer({ id: 'container-2', code: 'BB-22' })],
-    labels: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
     printError: null,
     qrImageUrls: { 'container-1': 'data:image/png;base64,abc123' },
-    rooms: [{ id: 'room-1', name: 'Garage' }],
-    selectedIds: ['container-1'],
     selectedContainers: [buildContainer()],
     ...overrides
   };
@@ -32,7 +28,7 @@ describe('print route', () => {
     render(Page, { data: buildData() });
 
     expect(
-      screen.getByRole('heading', { name: /1 label selected across 1 sheet/i })
+      screen.getByRole('heading', { name: /1 new label ready for one sheet/i })
     ).toBeInTheDocument();
     expect(screen.getByAltText(/qr label for aa-11/i)).toHaveAttribute(
       'src',
@@ -40,17 +36,10 @@ describe('print route', () => {
     );
   });
 
-  test('renders select-all and clear-selection links for choosing which labels to print', () => {
+  test('renders the new full-sheet action', () => {
     render(Page, { data: buildData() });
 
-    expect(screen.getByRole('link', { name: /select all/i })).toHaveAttribute(
-      'href',
-      '/print?id=container-1&id=container-2'
-    );
-    expect(screen.getByRole('link', { name: /clear selection/i })).toHaveAttribute(
-      'href',
-      '/print'
-    );
+    expect(screen.getByRole('button', { name: /preview new full sheet/i })).toBeInTheDocument();
   });
 
   test('calls window.print from the toolbar action', async () => {

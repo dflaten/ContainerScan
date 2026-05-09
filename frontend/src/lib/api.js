@@ -113,15 +113,6 @@ export function createApi(fetchFn, config = {}) {
     listContainers(filters = {}) {
       return requestJson(fetchFn, '/containers', createRequestOptions({ query: filters }));
     },
-    createPrintSheet(payload) {
-      return requestJson(fetchFn, '/print-sheets', createRequestOptions({
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      }));
-    },
     getPrintSheet(printSheetId) {
       return requestJson(fetchFn, `/print-sheets/${printSheetId}`, createRequestOptions());
     },

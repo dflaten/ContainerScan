@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from database import get_db_session
 from models import Container, PrintSheet, PrintSheetItem
-from schemas import DraftPrintLabelRead, DraftPrintSheetRead, FullSheetCreate, PrintSheetCreate, PrintSheetRead
+from schemas import DraftPrintLabelRead, DraftPrintSheetRead, FullSheetCreate, PrintSheetRead
 from utils.qr_labels import render_qr_code_png
 from utils.code_generator import generate_unique_container_code, is_valid_container_code
 
@@ -17,31 +17,6 @@ from utils.code_generator import generate_unique_container_code, is_valid_contai
 router = APIRouter(prefix="/api/print-sheets", tags=["print-sheets"])
 
 FULL_SHEET_LABEL_COUNT = 6
-
-
-@router.post("", response_model=PrintSheetRead, status_code=status.HTTP_201_CREATED)
-def create_print_sheet(payload: PrintSheetCreate, session: Session = Depends(get_db_session)) -> PrintSheet:
-    """Persist one previewed set of labels as a reusable print sheet."""
-    containers_by_id = _load_containers_by_id(session, payload.container_ids)
-    missing_ids = [container_id for container_id in payload.container_ids if container_id not in containers_by_id]
-    if missing_ids:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="One or more containers were not found.")
-
-    print_sheet = PrintSheet()
-    session.add(print_sheet)
-    session.flush()
-
-    for index, container_id in enumerate(payload.container_ids):
-        session.add(
-            PrintSheetItem(
-                print_sheet_id=print_sheet.id,
-                container_id=container_id,
-                sort_order=index,
-            )
-        )
-
-    session.commit()
-    return _get_print_sheet_or_404(session, print_sheet.id)
 
 
 @router.get("/{print_sheet_id}", response_model=PrintSheetRead)
@@ -146,10 +121,3 @@ def _get_print_sheet_or_404(session: Session, print_sheet_id: uuid.UUID) -> Prin
     if print_sheet is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Print sheet not found.")
     return print_sheet
-
-
-def _load_containers_by_id(session: Session, container_ids: list[uuid.UUID]) -> dict[uuid.UUID, Container]:
-    """Fetch containers referenced by one print sheet request."""
-    statement = select(Container).where(Container.id.in_(container_ids))
-    containers = session.execute(statement).scalars().all()
-    return {container.id: container for container in containers}

@@ -985,12 +985,6 @@ li {
   color: var(--heading-font-color);
 }
 
-.print-action-card-muted {
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(255, 255, 255, 0.72)),
-    color-mix(in srgb, white 82%, var(--color-tertiary-50) 18%);
-}
-
 .print-action-buttons {
   display: flex;
   flex-wrap: wrap;
@@ -1040,67 +1034,10 @@ li {
   box-shadow: 0 14px 32px color-mix(in srgb, var(--color-primary-700) 24%, transparent);
 }
 
-.print-action-button-secondary {
-  background: color-mix(in srgb, white 78%, var(--color-tertiary-100) 22%);
-  border-color: color-mix(in srgb, var(--color-tertiary-600) 20%, transparent);
-  color: var(--heading-font-color);
-}
-
 .print-action-button-ghost {
   background: transparent;
   border-color: var(--cs-panel-border);
   color: var(--base-font-color);
-}
-
-.print-selection-form,
-.print-selection-list {
-  display: grid;
-  gap: 0.9rem;
-}
-
-.print-selection-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.85rem;
-}
-
-.print-selection-details {
-  border: 1px solid var(--cs-panel-border);
-  border-radius: 1.25rem;
-  background: rgba(255, 255, 255, 0.6);
-  overflow: clip;
-}
-
-.print-selection-summary {
-  list-style: none;
-  cursor: pointer;
-  padding: 1rem 1.05rem;
-}
-
-.print-selection-summary::-webkit-details-marker {
-  display: none;
-}
-
-.print-selection-summary > div {
-  display: grid;
-  gap: 0.3rem;
-}
-
-.print-selection-summary strong,
-.print-selection-summary p {
-  margin: 0;
-}
-
-.print-selection-summary strong {
-  color: var(--heading-font-color);
-  font-size: 1rem;
-}
-
-.print-selection-body {
-  display: grid;
-  gap: 1rem;
-  padding: 0 1.05rem 1.05rem;
-  border-top: 1px solid color-mix(in srgb, var(--cs-panel-border) 70%, transparent);
 }
 
 .print-spec-banner {
@@ -1110,32 +1047,6 @@ li {
 .print-tip-banner {
   margin-top: -0.2rem;
   background: color-mix(in srgb, white 72%, var(--color-primary-100) 28%);
-}
-
-.print-select-card {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 0.9rem;
-  align-items: start;
-  padding: 1rem;
-  border: 1px solid var(--cs-panel-border);
-  border-radius: 1.2rem;
-  background: rgba(255, 255, 255, 0.76);
-}
-
-.print-select-card input {
-  width: 1.05rem;
-  height: 1.05rem;
-  margin-top: 0.35rem;
-}
-
-.print-select-card strong {
-  display: block;
-  margin-top: 0.8rem;
-}
-
-.print-select-card p {
-  margin: 0.35rem 0 0;
 }
 
 .print-sheet-panel {
