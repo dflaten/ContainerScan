@@ -41,7 +41,7 @@
 
           <div class="site-menu-panel">
             <a class="site-menu-link" href="/containers/new">Generate Label</a>
-            <a class="site-menu-link" href="/rooms">Add/Remove Rooms</a>
+            <a class="site-menu-link" href="/rooms">Manage Rooms & Labels</a>
             <a class="site-menu-link" href="/advanced-search">Advanced Search</a>
             <a class="site-menu-link" href="/print">Print Labels</a>
           </div>

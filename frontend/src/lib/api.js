@@ -124,6 +124,20 @@ export function createApi(fetchFn, config = {}) {
     listLabels() {
       return requestJson(fetchFn, '/labels', createRequestOptions());
     },
+    createLabel(payload) {
+      return requestJson(fetchFn, '/labels', createRequestOptions({
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      }));
+    },
+    deleteLabel(labelId) {
+      return requestJson(fetchFn, `/labels/${labelId}`, createRequestOptions({
+        method: 'DELETE'
+      }));
+    },
     listContainers(filters = {}) {
       return requestJson(fetchFn, '/containers', createRequestOptions({ query: filters }));
     },

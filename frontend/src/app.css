@@ -564,11 +564,32 @@ li {
 }
 
 .room-create-form,
+.label-create-form,
 .room-list,
 .room-list-item,
 .room-list-copy {
   display: grid;
   gap: 1rem;
+}
+
+.resource-section {
+  padding: 1.15rem 1.2rem;
+  border: 1px solid color-mix(in srgb, var(--color-secondary-300) 24%, white 76%);
+  border-radius: 24px;
+  background: color-mix(in srgb, white 88%, var(--color-secondary-50) 12%);
+}
+
+.resource-section-secondary {
+  margin-top: 1.35rem;
+  background: color-mix(in srgb, white 92%, var(--color-primary-50) 8%);
+}
+
+.resource-section-heading {
+  margin-bottom: 1.15rem;
+}
+
+.room-list-heading {
+  margin-top: 2rem;
 }
 
 .room-list-item {
@@ -584,6 +605,16 @@ li {
   font-family: var(--heading-font-family);
   color: var(--heading-font-color);
   font-size: 1.08rem;
+}
+
+.room-list-copy-labelled {
+  align-items: center;
+}
+
+.label-colour-input {
+  width: 100%;
+  min-height: 3.25rem;
+  padding: 0.35rem;
 }
 
 .room-remove-button {
