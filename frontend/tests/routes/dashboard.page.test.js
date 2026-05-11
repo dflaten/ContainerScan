@@ -113,4 +113,40 @@ describe('dashboard route', () => {
       '/advanced-search'
     );
   });
+
+  test('shows documented containers before empty labels', () => {
+    render(
+      Page,
+      {
+        data: buildDashboardData({
+          createdContainerId: '',
+          containers: [
+            {
+              id: 'container-empty',
+              code: 'ZZ-99',
+              name: 'Container ZZ-99',
+              description: '',
+              room_id: '',
+              label_id: '',
+              images: []
+            },
+            {
+              id: 'container-full',
+              code: 'AA-11',
+              name: 'Garage Box 3',
+              description: 'Camping gear',
+              room_id: 'room-1',
+              label_id: 'label-1',
+              images: []
+            }
+          ]
+        })
+      }
+    );
+
+    const headings = screen.getAllByRole('heading', { level: 3 }).map((node) => node.textContent);
+    expect(headings.indexOf('Containers with saved details')).toBeLessThan(
+      headings.indexOf('Labels generated, waiting to be filled in')
+    );
+  });
 });

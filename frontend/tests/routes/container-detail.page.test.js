@@ -79,6 +79,12 @@ describe('container detail route', () => {
     expect(screen.getByText(/label ready\. download it now/i)).toBeInTheDocument();
   });
 
+  test('shows a floating dashboard shortcut on the container page', () => {
+    const { container } = render(Page, { data: buildData() });
+
+    expect(container.querySelector('.floating-dashboard-link')).toHaveAttribute('href', '/');
+  });
+
   test('saves metadata updates through the container api and shows a success notice', async () => {
     mocks.api.updateContainer.mockResolvedValue(
       buildContainer({
@@ -118,5 +124,58 @@ describe('container detail route', () => {
       expect(mocks.api.deleteContainer).toHaveBeenCalledWith('container-1');
     });
     expect(mocks.goto).toHaveBeenCalledWith('/?deleted=AA-11');
+  });
+
+  test('preserves unsaved metadata edits when uploading images', async () => {
+    mocks.api.uploadContainerImages.mockResolvedValue([]);
+    mocks.api.getContainer.mockResolvedValue(
+      buildContainer({
+        images: [
+          {
+            id: 'image-1',
+            url: '/images/one.jpg',
+            uploaded_at: '2026-05-06T12:00:00Z',
+            caption: 'Front shelf',
+            sort_order: 0,
+            is_primary: true
+          },
+          {
+            id: 'image-2',
+            url: '/images/two.jpg',
+            uploaded_at: '2026-05-07T12:00:00Z',
+            caption: 'Inside bin',
+            sort_order: 1,
+            is_primary: false
+          }
+        ]
+      })
+    );
+
+    render(Page, { data: buildData() });
+
+    await fireEvent.input(screen.getByLabelText('Name'), {
+      target: { value: 'Unsaved name draft' }
+    });
+    await fireEvent.input(screen.getByLabelText('Description'), {
+      target: { value: 'Unsaved description draft' }
+    });
+
+    const uploadInput = document.querySelector('.upload-picker input');
+    const file = new File(['image-bytes'], 'inside.jpg', { type: 'image/jpeg' });
+    expect(uploadInput).not.toBeNull();
+    await fireEvent.change(uploadInput, {
+      target: { files: [file] }
+    });
+
+    await waitFor(() => {
+      expect(mocks.api.uploadContainerImages).toHaveBeenCalledWith('container-1', {
+        files: [file]
+      });
+    });
+
+    expect(screen.getByLabelText('Name')).toHaveValue('Unsaved name draft');
+    expect(screen.getByLabelText('Description')).toHaveValue('Unsaved description draft');
+    expect(screen.getByText(/uploaded 1 image\./i)).toBeInTheDocument();
+    expect(screen.getByAltText('Inside bin')).toBeInTheDocument();
   });
 });
