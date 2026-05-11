@@ -107,6 +107,20 @@ export function createApi(fetchFn, config = {}) {
     listRooms() {
       return requestJson(fetchFn, '/rooms', createRequestOptions());
     },
+    createRoom(payload) {
+      return requestJson(fetchFn, '/rooms', createRequestOptions({
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      }));
+    },
+    deleteRoom(roomId) {
+      return requestJson(fetchFn, `/rooms/${roomId}`, createRequestOptions({
+        method: 'DELETE'
+      }));
+    },
     listLabels() {
       return requestJson(fetchFn, '/labels', createRequestOptions());
     },
