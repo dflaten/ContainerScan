@@ -154,36 +154,6 @@
         </p>
       </div>
     {:else}
-      {#if pendingContainers.length > 0}
-        <div class="panel-heading">
-          <span class="eyebrow">Needs Details</span>
-          <h3>Labels generated, waiting to be filled in</h3>
-        </div>
-
-        <div class="dashboard-grid">
-          {#each pendingContainers as container}
-            <article class="container-card">
-              <a class="card-link" href={`/containers/${container.id}`}>
-                <div class="card-content-box">
-                  <div class="card-image-wrap">
-                    <div class="card-image card-image-empty">Ready for label download</div>
-                  </div>
-
-                  <div class="card-body">
-                    <div class="card-topline">
-                      <span class="container-code">{container.code}</span>
-                    </div>
-
-                    <h3>{container.name}</h3>
-                    <p>Print the label now, then add the contents, room, label, and photos later.</p>
-                  </div>
-                </div>
-              </a>
-            </article>
-          {/each}
-        </div>
-      {/if}
-
       {#if documentedContainers.length > 0}
         {#if pendingContainers.length > 0}
           <div class="panel-heading">
@@ -231,6 +201,38 @@
                         <dd>{container.images.length}</dd>
                       </div>
                     </dl>
+                  </div>
+                </div>
+              </a>
+            </article>
+          {/each}
+        </div>
+      {/if}
+
+      {#if pendingContainers.length > 0}
+        {#if documentedContainers.length > 0}
+          <div class="panel-heading">
+            <span class="eyebrow">Needs Details</span>
+            <h3>Labels generated, waiting to be filled in</h3>
+          </div>
+        {/if}
+
+        <div class="dashboard-grid">
+          {#each pendingContainers as container}
+            <article class="container-card">
+              <a class="card-link" href={`/containers/${container.id}`}>
+                <div class="card-content-box">
+                  <div class="card-image-wrap">
+                    <div class="card-image card-image-empty">Ready for label download</div>
+                  </div>
+
+                  <div class="card-body">
+                    <div class="card-topline">
+                      <span class="container-code">{container.code}</span>
+                    </div>
+
+                    <h3>{container.name}</h3>
+                    <p>Print the label now, then add the contents, room, label, and photos later.</p>
                   </div>
                 </div>
               </a>

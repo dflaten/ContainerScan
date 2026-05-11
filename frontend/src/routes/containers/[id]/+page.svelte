@@ -16,7 +16,7 @@
   let isSavingMetadata = false;
   let isDeletingContainer = false;
   let isUploadingImages = false;
-  let uploadFiles;
+  let uploadInput;
   let form = buildForm(container);
   let imageRows = buildImageRows(container);
 
@@ -46,10 +46,12 @@
       }));
   }
 
-  async function reloadContainer(notice = null) {
+  async function reloadContainer(notice = null, { preserveForm = false } = {}) {
     const refreshed = await api.getContainer(container.id);
     container = refreshed;
-    form = buildForm(refreshed);
+    if (!preserveForm) {
+      form = buildForm(refreshed);
+    }
     imageRows = buildImageRows(refreshed);
 
     if (notice) {
@@ -77,11 +79,11 @@
     }
   }
 
-  async function handleImageUpload() {
+  async function handleImageUpload(event) {
     imageError = null;
     imageNotice = null;
 
-    const files = uploadFiles ? Array.from(uploadFiles) : [];
+    const files = Array.from(event.currentTarget.files ?? []);
     if (files.length === 0) {
       imageError = 'Choose at least one image to upload.';
       return;
@@ -91,8 +93,12 @@
 
     try {
       await api.uploadContainerImages(container.id, { files });
-      uploadFiles = undefined;
-      await reloadContainer(`Uploaded ${files.length} image${files.length === 1 ? '' : 's'}.`);
+      if (uploadInput) {
+        uploadInput.value = '';
+      }
+      await reloadContainer(`Uploaded ${files.length} image${files.length === 1 ? '' : 's'}.`, {
+        preserveForm: true
+      });
     } catch (error) {
       imageError = error.detail ?? error.message ?? 'Unable to upload images.';
     } finally {
@@ -110,7 +116,7 @@
         sort_order: Number(row.sort_order),
         is_primary: row.is_primary
       });
-      await reloadContainer('Image metadata updated.');
+      await reloadContainer('Image metadata updated.', { preserveForm: true });
     } catch (error) {
       imageError = error.detail ?? error.message ?? 'Unable to update the image.';
     }
@@ -122,7 +128,7 @@
 
     try {
       await api.deleteImage(row.id);
-      await reloadContainer('Image removed.');
+      await reloadContainer('Image removed.', { preserveForm: true });
     } catch (error) {
       imageError = error.detail ?? error.message ?? 'Unable to delete the image.';
     }
@@ -186,43 +192,27 @@
 {:else}
   {@const currentLabel = labelFor(form.label_id)}
 
-  <section class="hero-panel">
-    <span class="eyebrow">Container</span>
-    <h1>{container.name}</h1>
-    <p>
-      Download the label, then fill in the contents, storage location, and photos from the same screen.
-    </p>
-
-    <div class="detail-topline">
-      <span class="container-code container-code-large">{container.code}</span>
-      <span class="detail-room-badge">{roomNameFor(form.room_id)}</span>
-      {#if currentLabel}
-        <span class="container-label-chip">
-          <span class="label-swatch" style={`background: ${currentLabel.colour};`}></span>
-          {currentLabel.name}
-        </span>
-      {/if}
-    </div>
-
-    <div class="hero-actions">
-      <a class="secondary-link" href="/">Back to dashboard</a>
-      <a class="primary-link" href={api.getQrDownloadPath(container.id)}>Download QR Label</a>
-    </div>
-
-    {#if isDraftContainer()}
-      <div class="notice-banner">
-        This container is still a blank record. Attach the printed label, then come back and add the
-        contents, location, and photos.
-      </div>
-    {/if}
-  </section>
+  <a class="floating-dashboard-link" href="/" aria-label="Back to dashboard" title="Back to dashboard">
+    <svg viewBox="0 0 24 24" aria-hidden="true">
+      <path
+        d="M3 13.2L12 5l9 8.2v7.3a1.5 1.5 0 0 1-1.5 1.5h-4.7v-6.2h-5.6V22H4.5A1.5 1.5 0 0 1 3 20.5z"
+        fill="currentColor"
+      />
+    </svg>
+  </a>
 
   <section class="content-grid detail-grid">
     <article class="panel">
       <div class="panel-heading">
-        <span class="eyebrow">Metadata</span>
-        <h2>Edit container details</h2>
+        <span class="eyebrow">Edit Container Details</span>
       </div>
+
+      {#if isDraftContainer()}
+        <div class="notice-banner">
+          This container is still a blank record. Attach the printed label, then come back and add the
+          contents, location, and photos.
+        </div>
+      {/if}
 
       {#if metadataNotice}
         <div class="notice-banner">{metadataNotice}</div>
@@ -305,7 +295,7 @@
     <article class="panel panel-wide">
       <div class="panel-heading">
         <span class="eyebrow">Images</span>
-        <h2>Upload, reorder, caption, and remove photos</h2>
+        <h2>Manage container photos</h2>
       </div>
 
       {#if imageNotice}
@@ -319,21 +309,27 @@
         </div>
       {/if}
 
-      <form class="upload-strip" on:submit|preventDefault={handleImageUpload}>
-        <label class="field field-stack upload-field">
-          <span>Add images</span>
-          <input bind:files={uploadFiles} type="file" accept="image/*" multiple />
-          <small class="field-note">
-            Upload first the exterior/storage-location photo, then any contents images after it.
-          </small>
-        </label>
-
-        <div class="form-actions">
-          <button type="submit" disabled={isUploadingImages}>
-            {isUploadingImages ? 'Uploading…' : 'Upload Images'}
-          </button>
+      <div class="upload-strip">
+        <div class="upload-strip-copy">
+          <span class="eyebrow">Add Photos</span>
+          <h3>{isUploadingImages ? 'Uploading images…' : 'Drop in the next photos for this container'}</h3>
+          <p>
+            Start with the exterior/storage-location photo, then add contents images after it.
+          </p>
         </div>
-      </form>
+
+        <label class="upload-picker">
+          <input
+            bind:this={uploadInput}
+            type="file"
+            accept="image/*"
+            multiple
+            disabled={isUploadingImages}
+            on:change={handleImageUpload}
+          />
+          <span>{isUploadingImages ? 'Uploading…' : 'Choose Images'}</span>
+        </label>
+      </div>
 
       {#if container.images.length === 0}
         <div class="empty-state">
@@ -382,4 +378,8 @@
       {/if}
     </article>
   </section>
+
+  <div class="detail-page-actions">
+    <a class="primary-link" href={api.getQrDownloadPath(container.id)}>Download QR Label</a>
+  </div>
 {/if}
