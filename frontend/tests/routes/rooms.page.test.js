@@ -73,12 +73,12 @@ describe('rooms management route', () => {
     expect(screen.getByText(/removed room garage\./i)).toBeInTheDocument();
   });
 
-  test('creates a label and shows it in the list', async () => {
+  test('creates a tag and shows it in the list', async () => {
     mocks.api.createLabel.mockResolvedValue({ id: 'label-3', name: 'Archive', colour: '#123456' });
 
     render(Page, { data: buildData() });
 
-    await fireEvent.input(screen.getByPlaceholderText('enter label name here'), {
+    await fireEvent.input(screen.getByPlaceholderText('enter tag name here'), {
       target: { value: 'Archive' }
     });
     const colourInput = document.querySelector('.label-colour-input');
@@ -86,17 +86,17 @@ describe('rooms management route', () => {
     await fireEvent.input(colourInput, {
       target: { value: '#123456' }
     });
-    await fireEvent.click(screen.getByRole('button', { name: /add label/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /add tag/i }));
 
     await waitFor(() => {
       expect(mocks.api.createLabel).toHaveBeenCalledWith({ name: 'Archive', colour: '#123456' });
     });
 
-    expect(screen.getByText(/added label archive\./i)).toBeInTheDocument();
+    expect(screen.getByText(/added tag archive\./i)).toBeInTheDocument();
     expect(screen.getByText('Archive')).toBeInTheDocument();
   });
 
-  test('removes a label from the list', async () => {
+  test('removes a tag from the list', async () => {
     mocks.api.deleteLabel.mockResolvedValue(null);
 
     render(Page, { data: buildData() });
@@ -110,6 +110,6 @@ describe('rooms management route', () => {
     });
 
     expect(screen.queryByText('Holiday')).not.toBeInTheDocument();
-    expect(screen.getByText(/removed label holiday\./i)).toBeInTheDocument();
+    expect(screen.getByText(/removed tag holiday\./i)).toBeInTheDocument();
   });
 });

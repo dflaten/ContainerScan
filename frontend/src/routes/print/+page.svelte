@@ -56,6 +56,14 @@
     </div>
   </section>
 {:else}
+  {#if data.missingEmptyLabelsNotice}
+    <section class="panel">
+      <div class="notice-banner print-spec-banner">
+        No empty labels are currently available. Print a new sheet to generate more labels before filling containers in.
+      </div>
+    </section>
+  {/if}
+
   {#if form?.previewFullSheetError}
     <section class="panel">
       <div class="diagnostics">

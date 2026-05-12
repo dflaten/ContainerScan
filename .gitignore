@@ -6,6 +6,7 @@ __pycache__/
 node_modules/
 .svelte-kit/
 .svelte-kit-cache/
+.vite-cache/
 dist/
 build/
 

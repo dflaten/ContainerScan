@@ -63,7 +63,7 @@
   async function handleCreateLabel() {
     const normalizedName = labelName.trim();
     if (!normalizedName) {
-      labelError = 'Enter a label name.';
+      labelError = 'Enter a tag name.';
       return;
     }
 
@@ -76,9 +76,9 @@
       labels = [...labels, createdLabel].sort((left, right) => left.name.localeCompare(right.name));
       labelName = '';
       labelColour = '#A86720';
-      labelNotice = `Added label ${createdLabel.name}.`;
+      labelNotice = `Added tag ${createdLabel.name}.`;
     } catch (requestError) {
-      labelError = requestError.detail ?? requestError.message ?? 'Unable to create the label.';
+      labelError = requestError.detail ?? requestError.message ?? 'Unable to create the tag.';
     } finally {
       isCreatingLabel = false;
     }
@@ -92,9 +92,9 @@
     try {
       await api.deleteLabel(label.id);
       labels = labels.filter((entry) => entry.id !== label.id);
-      labelNotice = `Removed label ${label.name}.`;
+      labelNotice = `Removed tag ${label.name}.`;
     } catch (requestError) {
-      labelError = requestError.detail ?? requestError.message ?? 'Unable to remove the label.';
+      labelError = requestError.detail ?? requestError.message ?? 'Unable to remove the tag.';
     } finally {
       const nextDeletingIds = new Set(deletingLabelIds);
       nextDeletingIds.delete(label.id);
@@ -104,7 +104,7 @@
 </script>
 
 <svelte:head>
-  <title>HomeIndex | Rooms & Labels</title>
+  <title>HomeIndex | Rooms & Tags</title>
 </svelte:head>
 
 <section class="content-grid rooms-page-grid">
@@ -184,26 +184,26 @@
 
     {#if labelError}
       <div class="diagnostics">
-        <h3>Label update failed</h3>
+        <h3>Tag update failed</h3>
         <p>{labelError}</p>
       </div>
     {/if}
 
     <section class="resource-section">
       <div class="panel-heading resource-section-heading">
-        <span class="eyebrow">Labels</span>
-        <h2>Create and remove labels for container organization</h2>
+        <span class="eyebrow">Tags</span>
+        <h2>Create and remove tags for container organization</h2>
       </div>
 
       <form class="label-create-form" on:submit|preventDefault={handleCreateLabel}>
         <div class="editor-columns">
           <label class="field field-stack">
-            <span>Label Name</span>
-            <input bind:value={labelName} type="text" placeholder="enter label name here" />
+            <span>Tag Name</span>
+            <input bind:value={labelName} type="text" placeholder="enter tag name here" />
           </label>
 
           <label class="field field-stack">
-            <span>Label Colour</span>
+            <span>Tag Colour</span>
             <input bind:value={labelColour} class="label-colour-input" type="color" />
             <small class="field-note">{labelColour}</small>
           </label>
@@ -211,7 +211,7 @@
 
         <div class="form-actions">
           <button type="submit" disabled={isCreatingLabel}>
-            {isCreatingLabel ? 'Adding…' : 'Add Label'}
+            {isCreatingLabel ? 'Adding…' : 'Add Tag'}
           </button>
         </div>
       </form>
@@ -219,14 +219,14 @@
 
     <section class="resource-section resource-section-secondary">
       <div class="panel-heading resource-section-heading room-list-heading">
-        <span class="eyebrow">Remove Labels</span>
-        <h2>Current label list</h2>
+        <span class="eyebrow">Remove Tags</span>
+        <h2>Current tag list</h2>
       </div>
 
       {#if labels.length === 0}
         <div class="empty-state">
-          <h3>No labels yet.</h3>
-          <p>Add your first label above so it can be assigned to containers.</p>
+          <h3>No tags yet.</h3>
+          <p>Add your first tag above so it can be assigned to containers.</p>
         </div>
       {:else}
         <div class="room-list">

@@ -48,6 +48,7 @@ describe('dashboard route', () => {
   beforeEach(() => {
     mocks.goto.mockReset();
     vi.useRealTimers();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
   test('shows a created-container notice with a detail link', () => {
@@ -72,6 +73,39 @@ describe('dashboard route', () => {
     expect(
       screen.getByText(/create your first container to start building the inventory\./i)
     ).toBeInTheDocument();
+  });
+
+  test('shows tracked-container and empty-label counts in the overview', () => {
+    render(Page, {
+      data: buildDashboardData({
+        createdContainerId: '',
+        containers: [
+          {
+            id: 'container-empty',
+            code: 'ZZ-99',
+            name: 'Container ZZ-99',
+            description: '',
+            room_id: '',
+            label_id: '',
+            images: []
+          },
+          {
+            id: 'container-full',
+            code: 'AA-11',
+            name: 'Garage Box 3',
+            description: 'Camping gear',
+            room_id: 'room-1',
+            label_id: 'label-1',
+            images: []
+          }
+        ]
+      })
+    });
+
+    expect(screen.getByText('Containers tracked')).toBeInTheDocument();
+    expect(screen.getByText('Empty labels')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('1')).toBeInTheDocument();
   });
 
   test('shows a deleted-container notice when returning from the detail page', () => {
@@ -112,6 +146,87 @@ describe('dashboard route', () => {
       'href',
       '/advanced-search'
     );
+  });
+
+  test('opens an existing empty label from the dashboard', async () => {
+    render(Page, {
+      data: buildDashboardData({
+        createdContainerId: '',
+        containers: [
+          {
+            id: 'container-empty',
+            code: 'ZZ-99',
+            name: 'Container ZZ-99',
+            description: '',
+            room_id: '',
+            label_id: '',
+            images: []
+          }
+        ]
+      })
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: /get empty label/i }));
+
+    await waitFor(() => {
+      expect(mocks.goto).toHaveBeenCalledWith('/containers/container-empty');
+    });
+  });
+
+  test('redirects to print labels when no empty labels are available', async () => {
+    render(Page, {
+      data: buildDashboardData({
+        createdContainerId: '',
+        containers: [
+          {
+            id: 'container-full',
+            code: 'AA-11',
+            name: 'Garage Box 3',
+            description: 'Camping gear',
+            room_id: 'room-1',
+            label_id: 'label-1',
+            images: []
+          }
+        ]
+      })
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: /get empty label/i }));
+
+    await waitFor(() => {
+      expect(window.confirm).toHaveBeenCalledWith(
+        'No empty labels are currently available. Print a new sheet of labels before continuing?'
+      );
+      expect(mocks.goto).toHaveBeenCalledWith('/print?missingEmptyLabels=1');
+    });
+  });
+
+  test('does not redirect to print labels when the confirmation is canceled', async () => {
+    window.confirm.mockReturnValue(false);
+
+    render(Page, {
+      data: buildDashboardData({
+        createdContainerId: '',
+        containers: [
+          {
+            id: 'container-full',
+            code: 'AA-11',
+            name: 'Garage Box 3',
+            description: 'Camping gear',
+            room_id: 'room-1',
+            label_id: 'label-1',
+            images: []
+          }
+        ]
+      })
+    });
+
+    await fireEvent.click(screen.getByRole('button', { name: /get empty label/i }));
+
+    await waitFor(() => {
+      expect(window.confirm).toHaveBeenCalled();
+    });
+    expect(mocks.goto).not.toHaveBeenCalled();
   });
 
   test('shows documented containers before empty labels', () => {

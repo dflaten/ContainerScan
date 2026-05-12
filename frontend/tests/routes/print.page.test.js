@@ -16,6 +16,7 @@ function buildContainer(overrides = {}) {
 
 function buildData(overrides = {}) {
   return {
+    missingEmptyLabelsNotice: false,
     printError: null,
     qrImageUrls: { 'container-1': 'data:image/png;base64,abc123' },
     selectedContainers: [buildContainer()],
@@ -40,6 +41,19 @@ describe('print route', () => {
     render(Page, { data: buildData() });
 
     expect(screen.getByRole('button', { name: /preview new full sheet/i })).toBeInTheDocument();
+  });
+
+  test('shows a notice when redirected because no empty labels are available', () => {
+    render(Page, {
+      data: buildData({
+        missingEmptyLabelsNotice: true,
+        selectedContainers: []
+      })
+    });
+
+    expect(
+      screen.getByText(/no empty labels are currently available\./i)
+    ).toBeInTheDocument();
   });
 
   test('calls window.print from the toolbar action', async () => {

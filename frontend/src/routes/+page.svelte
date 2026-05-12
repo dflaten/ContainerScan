@@ -11,14 +11,8 @@
     search: data.filters.search
   };
   let searchTimer;
-
-  function roomNameFor(roomId) {
-    return data.rooms.find((room) => room.id === roomId)?.name ?? 'Not set';
-  }
-
-  function labelFor(labelId) {
-    return data.labels.find((label) => label.id === labelId) ?? null;
-  }
+  let createError = null;
+  let isCreatingEmptyLabel = false;
 
   function primaryImageFor(container) {
     return container.images.find((image) => image.is_primary) ?? container.images[0] ?? null;
@@ -40,6 +34,33 @@
 
   function createdContainer() {
     return data.containers.find((container) => container.id === data.createdContainerId) ?? null;
+  }
+
+  async function handleCreateEmptyLabel() {
+    createError = null;
+    isCreatingEmptyLabel = true;
+
+    try {
+      const emptyLabel = pendingContainers[0] ?? null;
+
+      if (emptyLabel) {
+        await goto(`/containers/${emptyLabel.id}`);
+      } else {
+        const shouldRedirectToPrint = window.confirm(
+          'No empty labels are currently available. Print a new sheet of labels before continuing?'
+        );
+
+        if (!shouldRedirectToPrint) {
+          return;
+        }
+
+        await goto('/print?missingEmptyLabels=1');
+      }
+    } catch (error) {
+      createError = error.detail ?? error.message ?? 'Unable to open an empty label.';
+    } finally {
+      isCreatingEmptyLabel = false;
+    }
   }
 
   function buildDashboardQuery(nextFilters) {
@@ -93,6 +114,40 @@
 </svelte:head>
 
 <section class="content-grid">
+  <article class="panel panel-full dashboard-overview">
+    <div class="panel-heading dashboard-overview-heading">
+      <span class="eyebrow">Inventory Snapshot</span>
+
+      <button
+        class="dashboard-overview-action"
+        type="button"
+        on:click={handleCreateEmptyLabel}
+        disabled={isCreatingEmptyLabel}
+      >
+        {isCreatingEmptyLabel ? 'Opening Empty Label…' : 'Get Empty Label'}
+      </button>
+    </div>
+
+    <div class="dashboard-stats">
+      <article class="dashboard-stat">
+        <span class="dashboard-stat-label">Containers tracked</span>
+        <strong>{data.containers.length}</strong>
+      </article>
+
+      <article class="dashboard-stat">
+        <span class="dashboard-stat-label">Empty labels</span>
+        <strong>{pendingContainers.length}</strong>
+      </article>
+    </div>
+
+    {#if createError}
+      <div class="diagnostics">
+        <h3>Could not open empty label</h3>
+        <p>{createError}</p>
+      </div>
+    {/if}
+  </article>
+
   <article class="panel">
     <div class="panel-heading">
       <span class="eyebrow">Search</span>
@@ -158,13 +213,11 @@
         {#if pendingContainers.length > 0}
           <div class="panel-heading">
             <span class="eyebrow">Documented</span>
-            <h3>Containers with saved details</h3>
           </div>
         {/if}
 
         <div class="dashboard-grid">
           {#each documentedContainers as container}
-            {@const label = labelFor(container.label_id)}
             {@const image = primaryImageFor(container)}
             <article class="container-card">
               <a class="card-link" href={`/containers/${container.id}`}>
@@ -180,27 +233,10 @@
                   <div class="card-body">
                     <div class="card-topline">
                       <span class="container-code">{container.code}</span>
-                      {#if label}
-                        <span class="container-label-chip">
-                          <span class="label-swatch" style={`background: ${label.colour};`}></span>
-                          {label.name}
-                        </span>
-                      {/if}
                     </div>
 
                     <h3>{container.name}</h3>
-                    <p>{container.description || 'No description recorded yet.'}</p>
-
-                    <dl class="card-meta">
-                      <div>
-                        <dt>Room</dt>
-                        <dd>{roomNameFor(container.room_id)}</dd>
-                      </div>
-                      <div>
-                        <dt>Images</dt>
-                        <dd>{container.images.length}</dd>
-                      </div>
-                    </dl>
+                    <p>{container.images.length} image{container.images.length === 1 ? '' : 's'} saved</p>
                   </div>
                 </div>
               </a>
@@ -212,8 +248,7 @@
       {#if pendingContainers.length > 0}
         {#if documentedContainers.length > 0}
           <div class="panel-heading">
-            <span class="eyebrow">Needs Details</span>
-            <h3>Labels generated, waiting to be filled in</h3>
+            <span class="eyebrow">Empty Labels</span>
           </div>
         {/if}
 

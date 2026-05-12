@@ -29,7 +29,7 @@
       <div class="site-header-actions">
         <div class="api-indicator" class:api-indicator-offline={!data.bootstrap.apiOnline} aria-label="API status">
           <span class="api-indicator-dot" aria-hidden="true"></span>
-          <span>API {data.bootstrap.apiOnline ? 'Online' : 'Offline'}</span>
+          <span>{data.bootstrap.apiOnline ? 'Online' : 'Offline'}</span>
         </div>
 
         <details class="site-menu">
@@ -41,7 +41,7 @@
 
           <div class="site-menu-panel">
             <a class="site-menu-link" href="/containers/new">Generate Label</a>
-            <a class="site-menu-link" href="/rooms">Manage Rooms & Labels</a>
+            <a class="site-menu-link" href="/rooms">Manage Rooms & Tags</a>
             <a class="site-menu-link" href="/advanced-search">Advanced Search</a>
             <a class="site-menu-link" href="/print">Print Labels</a>
           </div>
@@ -49,11 +49,6 @@
       </div>
     </div>
 
-    {#if page.url.pathname === '/'}
-      <p class="brand-summary">
-        Label boxes, track where they live, and pull them up quickly from any device on your local network.
-      </p>
-    {/if}
   </header>
 
   <main
