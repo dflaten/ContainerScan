@@ -60,7 +60,7 @@ describe('print route', () => {
     const printSpy = vi.spyOn(window, 'print').mockImplementation(() => {});
 
     render(Page, { data: buildData() });
-    await fireEvent.click(screen.getByRole('button', { name: /print current preview/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /print this sheet/i }));
 
     expect(printSpy).toHaveBeenCalled();
   });

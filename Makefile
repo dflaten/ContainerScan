@@ -1,6 +1,6 @@
 COMPOSE := docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
-.PHONY: help dev-up dev-build dev-down dev-reset logs ps migrate migrate-status migrate-revision seed-dev backend-lint backend-compile frontend-build
+.PHONY: help dev-up dev-build dev-down dev-reset logs ps migrate migrate-status migrate-revision seed-dev backend-lint backend-compile backend-test frontend-build frontend-test test
 
 help:
 	@printf '%s\n' \
@@ -17,7 +17,10 @@ help:
 		'  make seed-dev          Seed the development database with sample records' \
 		'  make backend-lint      Run backend lint checks' \
 		'  make backend-compile   Run backend import/compile checks' \
-		'  make frontend-build    Run the frontend production build'
+		'  make backend-test      Run backend tests' \
+		'  make frontend-build    Run the frontend production build' \
+		'  make frontend-test     Run frontend tests' \
+		'  make test              Run backend and frontend tests'
 
 dev-up:
 	$(COMPOSE) up
@@ -56,5 +59,13 @@ backend-lint:
 backend-compile:
 	cd backend && ./.venv/bin/python -m py_compile main.py config.py database.py models.py alembic/env.py
 
+backend-test:
+	cd backend && uv run pytest
+
 frontend-build:
 	cd frontend && npm run build
+
+frontend-test:
+	cd frontend && npm test
+
+test: backend-test frontend-test

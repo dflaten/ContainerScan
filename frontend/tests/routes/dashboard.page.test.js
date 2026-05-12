@@ -259,9 +259,9 @@ describe('dashboard route', () => {
       }
     );
 
-    const headings = screen.getAllByRole('heading', { level: 3 }).map((node) => node.textContent);
-    expect(headings.indexOf('Containers with saved details')).toBeLessThan(
-      headings.indexOf('Labels generated, waiting to be filled in')
+    const sectionLabels = screen.getAllByText(/Documented|Empty Labels/).map((node) => node.textContent);
+    expect(sectionLabels.indexOf('Documented')).toBeLessThan(
+      sectionLabels.indexOf('Empty Labels')
     );
   });
 });
