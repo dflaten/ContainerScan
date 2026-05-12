@@ -33,6 +33,7 @@ export async function load({ fetch, url }) {
   return {
     createdFullSheet: url.searchParams.get('generated') === '1',
     draftSheet,
+    missingEmptyLabelsNotice: url.searchParams.get('missingEmptyLabels') === '1',
     printError,
     qrImageUrls,
     savedSheet,

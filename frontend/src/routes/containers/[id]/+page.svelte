@@ -255,7 +255,7 @@
             </label>
 
             <label class="field">
-              <span>Label</span>
+              <span>Tag</span>
               <select bind:value={form.label_id}>
                 <option value="">Not set</option>
                 {#each data.labels as label}
