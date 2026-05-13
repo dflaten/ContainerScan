@@ -23,8 +23,8 @@ function buildData(overrides = {}) {
       { id: 'room-2', name: 'Attic' }
     ],
     tags: [
-      { id: 'label-1', name: 'Tools', colour: '#AABBCC' },
-      { id: 'label-2', name: 'Holiday', colour: '#CC8844' }
+      { id: 'label-1', name: 'Tools', colour: '#3B82F6' },
+      { id: 'label-2', name: 'Holiday', colour: '#FACC15' }
     ],
     ...overrides
   };
@@ -74,22 +74,18 @@ describe('rooms management route', () => {
   });
 
   test('creates a tag and shows it in the list', async () => {
-    mocks.api.createTag.mockResolvedValue({ id: 'label-3', name: 'Archive', colour: '#123456' });
+    mocks.api.createTag.mockResolvedValue({ id: 'label-3', name: 'Archive', colour: '#EF4444' });
 
     render(Page, { data: buildData() });
 
     await fireEvent.input(screen.getByPlaceholderText('enter tag name here'), {
       target: { value: 'Archive' }
     });
-    const colourInput = document.querySelector('.label-colour-input');
-    expect(colourInput).not.toBeNull();
-    await fireEvent.input(colourInput, {
-      target: { value: '#123456' }
-    });
+    await fireEvent.click(screen.getByRole('radio', { name: /red/i }));
     await fireEvent.click(screen.getByRole('button', { name: /add tag/i }));
 
     await waitFor(() => {
-      expect(mocks.api.createTag).toHaveBeenCalledWith({ name: 'Archive', colour: '#123456' });
+      expect(mocks.api.createTag).toHaveBeenCalledWith({ name: 'Archive', colour: '#EF4444' });
     });
 
     expect(screen.getByText(/added tag archive\./i)).toBeInTheDocument();

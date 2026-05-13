@@ -73,6 +73,7 @@ class Container(Base):
     code: Mapped[str] = mapped_column(CHAR(5), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    colour: Mapped[str] = mapped_column(String(7), nullable=False, server_default=text("'#3B82F6'"))
     room_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("rooms.id", ondelete="RESTRICT"),

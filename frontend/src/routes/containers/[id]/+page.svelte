@@ -5,21 +5,27 @@
   export let data;
 
   const api = createApi(fetch);
+  const containerColourOptions = [
+    { value: '#3B82F6', label: 'Blue' },
+    { value: '#FACC15', label: 'Yellow' },
+    { value: '#EF4444', label: 'Red' },
+    { value: '#22C55E', label: 'Green' }
+  ];
   const steps = [
     {
       eyebrow: 'Step 1',
-      title: 'Name and description',
+      title: 'Name/Description',
       description: ''
     },
     {
       eyebrow: 'Step 2',
-      title: 'Room and tags',
+      title: 'Room/Tags/Color',
       description: ''
     },
     {
       eyebrow: 'Step 3',
       title: 'Images',
-      description: 'Add the photos you want attached to this container, then return to the dashboard.'
+      description: ''
     }
   ];
 
@@ -39,6 +45,7 @@
     return {
       name: source?.name ?? '',
       description: source?.description ?? '',
+      colour: source?.colour ?? '#3B82F6',
       room_id: source?.room_id ?? '',
       tag_ids: source?.tag_ids ?? (source?.label_id ? [source.label_id] : [])
     };
@@ -266,6 +273,15 @@
               {/if}
             </div>
 
+            <label class="field">
+              <span>Color</span>
+              <select bind:value={form.colour} name="container_colour">
+                {#each containerColourOptions as option}
+                  <option value={option.value}>{option.label}</option>
+                {/each}
+              </select>
+            </label>
+
             <div class="wizard-actions">
               <button type="button" class="secondary-button" on:click={() => (activeStep = 0)}>Back</button>
               <button class="primary-button" type="submit" disabled={isSavingStep}>
@@ -278,9 +294,20 @@
             <div class="upload-strip">
               <div class="upload-strip-copy">
                 <span class="eyebrow">Add Photos</span>
-                <h3>{isUploadingImages ? 'Uploading images…' : 'Choose images for this container'}</h3>
-                <p>Select the images you want attached to this container. When you finish, you will return to the dashboard.</p>
+                {#if container.images.length > 0}
+                  <span>{container.images.length} already saved</span>
+                {/if}
               </div>
+
+              {#if container.images.length > 0}
+                <div class="existing-images">
+                  <div class="existing-images-grid">
+                    {#each container.images as image (image.id)}
+                      <img class="existing-image-thumb" src={image.url} alt={image.caption || container.name} />
+                    {/each}
+                  </div>
+                </div>
+              {/if}
 
               <label class="upload-picker">
                 <input
@@ -302,21 +329,6 @@
                     <li>{file.name}</li>
                   {/each}
                 </ul>
-              </div>
-            {/if}
-
-            {#if container.images.length > 0}
-              <div class="existing-images">
-                <div class="existing-images-heading">
-                  <strong>Existing images</strong>
-                  <span>{container.images.length} already saved</span>
-                </div>
-
-                <div class="existing-images-grid">
-                  {#each container.images as image (image.id)}
-                    <img class="existing-image-thumb" src={image.url} alt={image.caption || container.name} />
-                  {/each}
-                </div>
               </div>
             {/if}
 

@@ -70,6 +70,7 @@ def create_container(payload: ContainerCreate, session: Session = Depends(get_db
         code=code,
         name=payload.name or f"Container {code}",
         description=payload.description,
+        colour=payload.colour,
         room_id=payload.room_id,
         label_id=primary_tag_id,
     )
@@ -105,7 +106,7 @@ def _render_container_qr_label_response(
     """Generate one QR label PNG response in either inline or download mode."""
     container = _get_container_or_404(session, container_id)
     room_name = container.room.name if container.room is not None else "Unassigned Room"
-    label_colour = container.label.colour if container.label is not None else "#FFFFFF"
+    label_colour = container.colour
     png_bytes = render_qr_label_png(
         container_id=container.id,
         container_code=container.code,
@@ -196,6 +197,7 @@ def update_container(
 
     container.name = payload.name
     container.description = payload.description
+    container.colour = payload.colour
     container.room_id = payload.room_id
     container.label_id = payload.tag_ids[0] if payload.tag_ids else None
     container.tags = [session.get(Label, tag_id) for tag_id in payload.tag_ids]

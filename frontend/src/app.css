@@ -747,10 +747,31 @@ li {
   align-items: center;
 }
 
-.label-colour-input {
-  width: 100%;
-  min-height: 3.25rem;
-  padding: 0.35rem;
+.tag-colour-options {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.tag-colour-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--color-secondary-300) 28%, white 72%);
+  border-radius: 18px;
+  background: color-mix(in srgb, white 90%, var(--color-secondary-50) 10%);
+  cursor: pointer;
+}
+
+.tag-colour-option input {
+  margin: 0;
+  accent-color: var(--color-secondary-600);
+}
+
+.tag-colour-option-selected {
+  border-color: color-mix(in srgb, var(--color-secondary-600) 42%, white 58%);
+  background: color-mix(in srgb, white 82%, var(--color-primary-50) 18%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-secondary-400) 22%, transparent);
 }
 
 .room-remove-button {
@@ -884,8 +905,7 @@ li {
 .wizard-panel,
 .wizard-actions,
 .selection-summary,
-.existing-images,
-.existing-images-heading {
+.existing-images {
   display: grid;
   gap: 1rem;
 }
@@ -906,19 +926,29 @@ li {
   justify-items: end;
 }
 
-.wizard-actions-split {
-  align-items: center;
-}
-
 .secondary-button {
   min-height: 2.9rem;
   padding: 0.8rem 1.2rem;
-  border: 1px solid var(--cs-panel-border);
+  border: 2px solid color-mix(in srgb, var(--color-secondary-700) 42%, white 58%);
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.8);
-  color: var(--base-font-color);
+  background: color-mix(in srgb, white 94%, var(--color-secondary-50) 6%);
+  color: var(--color-secondary-900);
   font: inherit;
+  font-weight: 700;
+  box-shadow: 0 10px 20px color-mix(in srgb, var(--color-secondary-700) 10%, transparent);
   cursor: pointer;
+  transition:
+    transform 140ms ease,
+    background-color 140ms ease,
+    border-color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.secondary-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: color-mix(in srgb, white 88%, var(--color-primary-50) 12%);
+  border-color: color-mix(in srgb, var(--color-secondary-800) 52%, white 48%);
+  box-shadow: 0 14px 26px color-mix(in srgb, var(--color-secondary-700) 16%, transparent);
 }
 
 .secondary-button:disabled {
@@ -1056,8 +1086,7 @@ li {
   background: color-mix(in srgb, white 86%, var(--color-primary-50) 14%);
 }
 
-.selection-summary strong,
-.existing-images-heading strong {
+.selection-summary strong {
   font-family: var(--heading-font-family);
   color: var(--heading-font-color);
 }
@@ -1119,14 +1148,6 @@ li {
   padding: 1rem 1.05rem;
   border-radius: 20px;
   background: color-mix(in srgb, white 84%, var(--color-tertiary-100) 16%);
-}
-
-.existing-images-heading {
-  gap: 0.25rem;
-}
-
-.existing-images-heading span {
-  color: var(--cs-text-muted);
 }
 
 .detail-grid {

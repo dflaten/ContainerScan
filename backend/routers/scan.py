@@ -29,8 +29,7 @@ def render_scan_view(container_id: uuid.UUID, session: Session = Depends(get_db_
     room_name = container.room.name if container.room is not None else "Unassigned Room"
     tag_items = container.tags if container.tags else ([container.label] if container.label is not None else [])
     tag_names = ", ".join(tag.name for tag in tag_items) if tag_items else "Untagged"
-    accent_tag = container.tags[0] if container.tags else container.label
-    label_colour = accent_tag.colour if accent_tag is not None else "#4B5563"
+    label_colour = container.colour if getattr(container, "colour", None) else "#4B5563"
     description = (
         escape(container.description)
         if container.description

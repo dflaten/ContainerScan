@@ -4,12 +4,18 @@
   export let data;
 
   const api = createApi(fetch);
+  const tagColourOptions = [
+    { value: '#3B82F6', label: 'Blue' },
+    { value: '#FACC15', label: 'Yellow' },
+    { value: '#EF4444', label: 'Red' },
+    { value: '#22C55E', label: 'Green' }
+  ];
 
   let rooms = [...data.rooms];
   let tags = [...data.tags];
   let roomName = '';
   let tagName = '';
-  let tagColour = '#A86720';
+  let tagColour = '#3B82F6';
   let roomNotice = null;
   let roomError = null;
   let tagNotice = null;
@@ -75,7 +81,7 @@
       const createdTag = await api.createTag({ name: normalizedName, colour: tagColour });
       tags = [...tags, createdTag].sort((left, right) => left.name.localeCompare(right.name));
       tagName = '';
-      tagColour = '#A86720';
+      tagColour = '#3B82F6';
       tagNotice = `Added tag ${createdTag.name}.`;
     } catch (requestError) {
       tagError = requestError.detail ?? requestError.message ?? 'Unable to create the tag.';
@@ -204,8 +210,15 @@
 
           <label class="field field-stack">
             <span>Tag Colour</span>
-            <input bind:value={tagColour} class="label-colour-input" type="color" />
-            <small class="field-note">{tagColour}</small>
+            <div class="tag-colour-options" role="radiogroup" aria-label="Tag Colour">
+              {#each tagColourOptions as option}
+                <label class:tag-colour-option-selected={tagColour === option.value} class="tag-colour-option">
+                  <input bind:group={tagColour} type="radio" name="tag_colour" value={option.value} />
+                  <span class="label-swatch" style={`background: ${option.value};`}></span>
+                  <span>{option.label}</span>
+                </label>
+              {/each}
+            </div>
           </label>
         </div>
 

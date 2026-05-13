@@ -56,6 +56,7 @@ describe('create container route', () => {
     await waitFor(() => {
       expect(mocks.api.createContainer).toHaveBeenCalledWith({
         name: 'Garage Box 7',
+        colour: '#3B82F6',
         room_id: null,
         tag_ids: []
       });

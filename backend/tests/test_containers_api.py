@@ -260,6 +260,7 @@ def _build_container(
     name: str,
     room_id: uuid.UUID | None,
     label_id: uuid.UUID | None,
+    colour: str = "#3B82F6",
     created_at: datetime | None = None,
     description: str = "",
 ) -> Container:
@@ -282,6 +283,7 @@ def _build_container(
         code=code,
         name=name,
         description=description,
+        colour=colour,
         room_id=room_id,
         label_id=label_id,
         created_at=timestamp,
@@ -376,6 +378,7 @@ def test_container_crud_endpoints_cover_happy_path_and_fk_validation() -> None:
     assert created.code == "BC-23"
     assert created.name == "Camping Bin"
     assert created.description == "tent stakes and lanterns"
+    assert created.colour == "#3B82F6"
     assert session.containers[created.id].room_id == next_room.id
 
     with patch("routers.containers.generate_unique_container_code", return_value="LM-44"):
@@ -392,6 +395,7 @@ def test_container_crud_endpoints_cover_happy_path_and_fk_validation() -> None:
     assert shell_container.code == "LM-44"
     assert shell_container.name == "Container LM-44"
     assert shell_container.description == ""
+    assert shell_container.colour == "#3B82F6"
     assert shell_container.room_id is None
     assert shell_container.label_id is None
 
@@ -400,6 +404,7 @@ def test_container_crud_endpoints_cover_happy_path_and_fk_validation() -> None:
         ContainerUpdate(
             name=" Garage Tools ",
             description=" drills and screws ",
+            colour="#EF4444",
             room_id=next_room.id,
             label_id=next_label.id,
         ),
@@ -407,6 +412,7 @@ def test_container_crud_endpoints_cover_happy_path_and_fk_validation() -> None:
     )
     assert updated.name == "Garage Tools"
     assert updated.description == "drills and screws"
+    assert updated.colour == "#EF4444"
     assert updated.room_id == next_room.id
     assert updated.code == "AA-11"
 
@@ -420,6 +426,7 @@ def test_container_crud_endpoints_cover_happy_path_and_fk_validation() -> None:
             ContainerCreate(
                 name="Missing Room",
                 description="",
+                colour="#3B82F6",
                 room_id=uuid.uuid4(),
                 label_id=label.id,
             ),
@@ -437,6 +444,7 @@ def test_container_crud_endpoints_cover_happy_path_and_fk_validation() -> None:
             ContainerUpdate(
                 name="Missing Label",
                 description="",
+                colour="#3B82F6",
                 room_id=room.id,
                 label_id=uuid.uuid4(),
             ),
@@ -609,7 +617,7 @@ def test_download_container_qr_label_passes_expected_metadata_to_renderer() -> N
         "container_code": "BC-23",
         "container_name": "Holiday Lights",
         "room_name": "Attic",
-        "label_colour": "#112233",
+        "label_colour": "#3B82F6",
     }
 
 

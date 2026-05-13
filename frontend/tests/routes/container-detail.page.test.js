@@ -30,6 +30,7 @@ function buildContainer(overrides = {}) {
     code: 'AA-11',
     name: 'Garage Box 3',
     description: 'Camping gear',
+    colour: '#3B82F6',
     room_id: 'room-1',
     label_id: 'label-1',
     tag_ids: ['label-1'],
@@ -106,13 +107,14 @@ describe('container detail route', () => {
       expect(mocks.api.updateContainer).toHaveBeenCalledWith('container-1', {
         name: 'Updated Garage Box 3',
         description: 'Camping gear',
+        colour: '#3B82F6',
         room_id: 'room-1',
         tag_ids: ['label-1']
       });
     });
 
     expect(screen.getByLabelText('Room')).toBeInTheDocument();
-    expect(screen.getByText('Room and tags')).toBeInTheDocument();
+    expect(screen.getByText('Room/Tags/Color')).toBeInTheDocument();
   });
 
   test('deletes the container after confirmation and redirects to the dashboard', async () => {
@@ -146,13 +148,14 @@ describe('container detail route', () => {
       expect(mocks.api.updateContainer).toHaveBeenLastCalledWith('container-1', {
         name: 'Garage Box 3',
         description: 'Camping gear',
+        colour: '#3B82F6',
         room_id: 'room-1',
         tag_ids: ['label-1']
       });
     });
 
     expect(screen.getByText('Images')).toBeInTheDocument();
-    expect(screen.getByText(/choose images for this container/i)).toBeInTheDocument();
+    expect(screen.getByText('1 already saved')).toBeInTheDocument();
   });
 
   test('uploads selected images on the final step and redirects to the dashboard', async () => {
@@ -164,7 +167,7 @@ describe('container detail route', () => {
     await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
     await screen.findByLabelText('Room');
     await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
-    await screen.findByText(/choose images for this container/i);
+    await screen.findByText('1 already saved');
 
     const uploadInput = document.querySelector('.upload-picker input');
     const file = new File(['image-bytes'], 'inside.jpg', { type: 'image/jpeg' });

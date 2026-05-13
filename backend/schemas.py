@@ -5,6 +5,13 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+ALLOWED_TAG_COLOURS = {
+    "#3B82F6",  # Blue
+    "#FACC15",  # Yellow
+    "#EF4444",  # Red
+    "#22C55E",  # Green
+}
+
 
 class APIModel(BaseModel):
     """Base Pydantic model configured for ORM object serialization."""
@@ -84,6 +91,9 @@ class LabelBase(NamedResourceBase):
         if any(char not in "0123456789ABCDEF" for char in hex_digits):
             raise ValueError("Colour must be a hex value like #FF5733.")
 
+        if normalized not in ALLOWED_TAG_COLOURS:
+            raise ValueError("Colour must be one of: Blue, Yellow, Red, or Green.")
+
         return normalized
 
 
@@ -119,6 +129,7 @@ class ContainerCreate(BaseModel):
 
     name: str | None = None
     description: str = ""
+    colour: str = "#3B82F6"
     room_id: uuid.UUID | None = None
     label_id: uuid.UUID | None = None
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
@@ -152,6 +163,12 @@ class ContainerCreate(BaseModel):
         """
         return value.strip()
 
+    @field_validator("colour")
+    @classmethod
+    def normalize_container_colour(cls, value: str) -> str:
+        """Normalize and validate the single container colour choice."""
+        return LabelBase.validate_colour(value)
+
     @field_validator("tag_ids")
     @classmethod
     def normalize_tag_ids(cls, value: list[uuid.UUID]) -> list[uuid.UUID]:
@@ -171,6 +188,7 @@ class ContainerUpdate(BaseModel):
 
     name: str
     description: str = ""
+    colour: str = "#3B82F6"
     room_id: uuid.UUID | None = None
     label_id: uuid.UUID | None = None
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
@@ -189,6 +207,12 @@ class ContainerUpdate(BaseModel):
     def normalize_update_description(cls, value: str) -> str:
         """Trim container description text."""
         return value.strip()
+
+    @field_validator("colour")
+    @classmethod
+    def normalize_update_container_colour(cls, value: str) -> str:
+        """Normalize and validate the single container colour choice."""
+        return LabelBase.validate_colour(value)
 
     @field_validator("tag_ids")
     @classmethod
@@ -241,6 +265,7 @@ class ContainerRead(APIModel):
     code: str
     name: str
     description: str
+    colour: str
     room_id: uuid.UUID | None
     label_id: uuid.UUID | None
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
@@ -256,6 +281,7 @@ class PrintSheetContainerRead(APIModel):
     id: uuid.UUID
     code: str
     name: str
+    colour: str
     room_id: uuid.UUID | None
     label_id: uuid.UUID | None
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
@@ -275,6 +301,7 @@ class DraftPrintLabelRead(BaseModel):
     id: uuid.UUID
     code: str
     name: str
+    colour: str = "#3B82F6"
     room_id: uuid.UUID | None = None
     label_id: uuid.UUID | None = None
     tag_ids: list[uuid.UUID] = Field(default_factory=list)
@@ -338,6 +365,7 @@ class ScanContainerRead(APIModel):
     code: str
     name: str
     description: str
+    colour: str
     room: ScanRoomRead | None
     label: ScanTagRead | None
     tags: list[ScanTagRead] = Field(default_factory=list)

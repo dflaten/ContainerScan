@@ -138,17 +138,6 @@ export function createApi(fetchFn, config = {}) {
         method: 'DELETE'
       }));
     },
-    listLabels() {
-      return this.listTags();
-    },
-    createLabel(payload) {
-      return this.createTag(payload);
-    },
-    deleteLabel(labelId) {
-      return requestJson(fetchFn, `/labels/${labelId}`, createRequestOptions({
-        method: 'DELETE'
-      }));
-    },
     listContainers(filters = {}) {
       return requestJson(fetchFn, '/containers', createRequestOptions({ query: filters }));
     },

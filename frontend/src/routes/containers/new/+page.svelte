@@ -9,6 +9,7 @@
 
   let form = {
     name: '',
+    colour: '#3B82F6',
     room_id: '',
     tag_ids: []
   };
@@ -31,6 +32,7 @@
     try {
       const createdContainer = await api.createContainer({
         name: form.name || null,
+        colour: form.colour,
         room_id: form.room_id || null,
         tag_ids: form.tag_ids
       });
