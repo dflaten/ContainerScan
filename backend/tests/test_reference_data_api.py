@@ -266,8 +266,8 @@ def test_room_crud_endpoints_cover_happy_path_and_conflicts() -> None:
 
 def test_label_crud_endpoints_cover_happy_path_and_conflicts() -> None:
     """Verify label CRUD behavior, validation, and conflict handling."""
-    existing_label = _build_label(name="Seasonal", colour="#AABBCC")
-    protected_label = _build_label(name="Tools", colour="#112233")
+    existing_label = _build_label(name="Seasonal", colour="#3B82F6")
+    protected_label = _build_label(name="Tools", colour="#22C55E")
     session = FakeSession(
         labels={existing_label.id: existing_label, protected_label.id: protected_label},
         protected_label_ids={protected_label.id},
@@ -276,12 +276,12 @@ def test_label_crud_endpoints_cover_happy_path_and_conflicts() -> None:
     labels = list_labels(session)
     assert [item.name for item in labels] == ["Seasonal", "Tools"]
 
-    created_label = create_label(LabelCreate(name=" Fragile ", colour=" #ff5733 "), session)
+    created_label = create_label(LabelCreate(name=" Fragile ", colour=" #ef4444 "), session)
     assert created_label.name == "Fragile"
-    assert created_label.colour == "#FF5733"
+    assert created_label.colour == "#EF4444"
 
     try:
-        create_label(LabelCreate(name="Seasonal", colour="#123456"), session)
+        create_label(LabelCreate(name="Seasonal", colour="#FACC15"), session)
     except HTTPException as exc:
         assert exc.status_code == 409
         assert exc.detail == "Label name already exists."
@@ -290,11 +290,11 @@ def test_label_crud_endpoints_cover_happy_path_and_conflicts() -> None:
 
     updated_label = update_label(
         existing_label.id,
-        LabelUpdate(name="Holiday", colour="#00AA00"),
+        LabelUpdate(name="Holiday", colour="#22C55E"),
         session,
     )
     assert updated_label.name == "Holiday"
-    assert updated_label.colour == "#00AA00"
+    assert updated_label.colour == "#22C55E"
 
     try:
         LabelCreate(name="Bad", colour="green")

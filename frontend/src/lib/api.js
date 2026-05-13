@@ -121,10 +121,10 @@ export function createApi(fetchFn, config = {}) {
         method: 'DELETE'
       }));
     },
-    listLabels() {
+    listTags() {
       return requestJson(fetchFn, '/labels', createRequestOptions());
     },
-    createLabel(payload) {
+    createTag(payload) {
       return requestJson(fetchFn, '/labels', createRequestOptions({
         method: 'POST',
         headers: {
@@ -133,8 +133,8 @@ export function createApi(fetchFn, config = {}) {
         body: JSON.stringify(payload)
       }));
     },
-    deleteLabel(labelId) {
-      return requestJson(fetchFn, `/labels/${labelId}`, createRequestOptions({
+    deleteTag(tagId) {
+      return requestJson(fetchFn, `/labels/${tagId}`, createRequestOptions({
         method: 'DELETE'
       }));
     },

@@ -3,7 +3,14 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+
+ALLOWED_TAG_COLOURS = {
+    "#3B82F6",  # Blue
+    "#FACC15",  # Yellow
+    "#EF4444",  # Red
+    "#22C55E",  # Green
+}
 
 
 class APIModel(BaseModel):
@@ -84,6 +91,9 @@ class LabelBase(NamedResourceBase):
         if any(char not in "0123456789ABCDEF" for char in hex_digits):
             raise ValueError("Colour must be a hex value like #FF5733.")
 
+        if normalized not in ALLOWED_TAG_COLOURS:
+            raise ValueError("Colour must be one of: Blue, Yellow, Red, or Green.")
+
         return normalized
 
 
@@ -108,13 +118,21 @@ class LabelRead(APIModel):
     created_at: datetime
 
 
+TagBase = LabelBase
+TagCreate = LabelCreate
+TagUpdate = LabelUpdate
+TagRead = LabelRead
+
+
 class ContainerCreate(BaseModel):
     """Request schema for creating a container shell before documentation is complete."""
 
     name: str | None = None
     description: str = ""
+    colour: str = "#3B82F6"
     room_id: uuid.UUID | None = None
     label_id: uuid.UUID | None = None
+    tag_ids: list[uuid.UUID] = Field(default_factory=list)
 
     @field_validator("name")
     @classmethod
@@ -145,14 +163,35 @@ class ContainerCreate(BaseModel):
         """
         return value.strip()
 
+    @field_validator("colour")
+    @classmethod
+    def normalize_container_colour(cls, value: str) -> str:
+        """Normalize and validate the single container colour choice."""
+        return LabelBase.validate_colour(value)
+
+    @field_validator("tag_ids")
+    @classmethod
+    def normalize_tag_ids(cls, value: list[uuid.UUID]) -> list[uuid.UUID]:
+        """Drop duplicate tag ids while preserving order."""
+        return list(dict.fromkeys(value))
+
+    @model_validator(mode="after")
+    def merge_legacy_label_id(self) -> "ContainerCreate":
+        """Treat a legacy single label id as the first tag when no tags were provided."""
+        if not self.tag_ids and self.label_id is not None:
+            self.tag_ids = [self.label_id]
+        return self
+
 
 class ContainerUpdate(BaseModel):
     """Request schema for updating mutable container metadata."""
 
     name: str
     description: str = ""
+    colour: str = "#3B82F6"
     room_id: uuid.UUID | None = None
     label_id: uuid.UUID | None = None
+    tag_ids: list[uuid.UUID] = Field(default_factory=list)
 
     @field_validator("name")
     @classmethod
@@ -168,6 +207,25 @@ class ContainerUpdate(BaseModel):
     def normalize_update_description(cls, value: str) -> str:
         """Trim container description text."""
         return value.strip()
+
+    @field_validator("colour")
+    @classmethod
+    def normalize_update_container_colour(cls, value: str) -> str:
+        """Normalize and validate the single container colour choice."""
+        return LabelBase.validate_colour(value)
+
+    @field_validator("tag_ids")
+    @classmethod
+    def normalize_update_tag_ids(cls, value: list[uuid.UUID]) -> list[uuid.UUID]:
+        """Drop duplicate tag ids while preserving order."""
+        return list(dict.fromkeys(value))
+
+    @model_validator(mode="after")
+    def merge_legacy_update_label_id(self) -> "ContainerUpdate":
+        """Treat a legacy single label id as the first tag when no tags were provided."""
+        if not self.tag_ids and self.label_id is not None:
+            self.tag_ids = [self.label_id]
+        return self
 
 
 class ImageRead(APIModel):
@@ -207,8 +265,11 @@ class ContainerRead(APIModel):
     code: str
     name: str
     description: str
+    colour: str
     room_id: uuid.UUID | None
     label_id: uuid.UUID | None
+    tag_ids: list[uuid.UUID] = Field(default_factory=list)
+    tags: list[TagRead] = Field(default_factory=list)
     created_at: datetime
     updated_at: datetime
     images: list[ImageRead] = Field(default_factory=list)
@@ -220,8 +281,10 @@ class PrintSheetContainerRead(APIModel):
     id: uuid.UUID
     code: str
     name: str
+    colour: str
     room_id: uuid.UUID | None
     label_id: uuid.UUID | None
+    tag_ids: list[uuid.UUID] = Field(default_factory=list)
 
 
 class PrintSheetRead(APIModel):
@@ -238,8 +301,10 @@ class DraftPrintLabelRead(BaseModel):
     id: uuid.UUID
     code: str
     name: str
+    colour: str = "#3B82F6"
     room_id: uuid.UUID | None = None
     label_id: uuid.UUID | None = None
+    tag_ids: list[uuid.UUID] = Field(default_factory=list)
 
 
 class DraftPrintSheetRead(BaseModel):
@@ -282,12 +347,15 @@ class ScanRoomRead(APIModel):
     name: str
 
 
-class ScanLabelRead(APIModel):
-    """Read-only label metadata exposed to public scan views."""
+class ScanTagRead(APIModel):
+    """Read-only tag metadata exposed to public scan views."""
 
     id: uuid.UUID
     name: str
     colour: str
+
+
+ScanLabelRead = ScanTagRead
 
 
 class ScanContainerRead(APIModel):
@@ -297,6 +365,8 @@ class ScanContainerRead(APIModel):
     code: str
     name: str
     description: str
+    colour: str
     room: ScanRoomRead | None
-    label: ScanLabelRead | None
+    label: ScanTagRead | None
+    tags: list[ScanTagRead] = Field(default_factory=list)
     images: list[ImageRead] = Field(default_factory=list)

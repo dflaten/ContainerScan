@@ -4,13 +4,13 @@ import { createServerApi } from '$lib/server-api';
 export async function load({ fetch, url }) {
   const api = createServerApi(fetch);
 
-  const [health, rooms, labels] = await Promise.all([
+  const [health, rooms, tags] = await Promise.all([
     safeRequest(api.getHealth()),
     safeRequest(api.listRooms()),
-    safeRequest(api.listLabels())
+    safeRequest(api.listTags())
   ]);
 
-  const diagnostics = [health, rooms, labels]
+  const diagnostics = [health, rooms, tags]
     .filter((result) => !result.ok && result.error)
     .map((result) => result.error.detail ?? result.error.message);
 
@@ -22,12 +22,12 @@ export async function load({ fetch, url }) {
     bootstrap: {
       apiOnline: health.ok && health.data?.status === 'ok',
       roomCount: rooms.ok ? rooms.data.length : null,
-      labelCount: labels.ok ? labels.data.length : null,
-      referenceDataReady: rooms.ok && labels.ok
+      tagCount: tags.ok ? tags.data.length : null,
+      referenceDataReady: rooms.ok && tags.ok
     },
     diagnostics,
     health: health.ok ? health.data : null,
     rooms: rooms.ok ? rooms.data : [],
-    labels: labels.ok ? labels.data : []
+    tags: tags.ok ? tags.data : []
   };
 }

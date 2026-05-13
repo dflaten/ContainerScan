@@ -23,6 +23,7 @@ def list_containers(
     session: Session = Depends(get_db_session),
     search: str | None = None,
     room_id: uuid.UUID | None = None,
+    tag_id: uuid.UUID | None = None,
     label_id: uuid.UUID | None = None,
     code: str | None = None,
 ) -> list[Container]:
@@ -31,7 +32,8 @@ def list_containers(
     Args:
         search: Optional full-text search string for code, name, and description.
         room_id: Optional room filter.
-        label_id: Optional label filter.
+        tag_id: Optional tag filter.
+        label_id: Deprecated single-label filter alias.
         code: Optional exact container code filter.
         session: Active database session injected by FastAPI.
 
@@ -43,7 +45,7 @@ def list_containers(
     statement = _build_container_list_statement(
         search=normalized_search,
         room_id=room_id,
-        label_id=label_id,
+        tag_id=tag_id or label_id,
         code=normalized_code,
     )
     return session.execute(statement).scalars().all()
@@ -60,16 +62,20 @@ def create_container(payload: ContainerCreate, session: Session = Depends(get_db
     Returns:
         Container: The newly created container record.
     """
-    _ensure_room_and_label_exist(session, room_id=payload.room_id, label_id=payload.label_id)
+    _ensure_room_and_tags_exist(session, room_id=payload.room_id, tag_ids=payload.tag_ids)
     code = generate_unique_container_code(session)
+    primary_tag_id = payload.tag_ids[0] if payload.tag_ids else None
 
     container = Container(
         code=code,
         name=payload.name or f"Container {code}",
         description=payload.description,
+        colour=payload.colour,
         room_id=payload.room_id,
-        label_id=payload.label_id,
+        label_id=primary_tag_id,
     )
+    if payload.tag_ids:
+        container.tags = [session.get(Label, tag_id) for tag_id in payload.tag_ids]
     session.add(container)
     _commit_or_raise_conflict(session)
     session.refresh(container)
@@ -100,7 +106,7 @@ def _render_container_qr_label_response(
     """Generate one QR label PNG response in either inline or download mode."""
     container = _get_container_or_404(session, container_id)
     room_name = container.room.name if container.room is not None else "Unassigned Room"
-    label_colour = container.label.colour if container.label is not None else "#FFFFFF"
+    label_colour = container.colour
     png_bytes = render_qr_label_png(
         container_id=container.id,
         container_code=container.code,
@@ -159,7 +165,11 @@ def get_container_by_code(code: str, session: Session = Depends(get_db_session))
     Raises:
         HTTPException: If no container exists for the supplied code.
     """
-    statement = select(Container).options(selectinload(Container.images)).where(Container.code == code.upper())
+    statement = (
+        select(Container)
+        .options(selectinload(Container.images), selectinload(Container.tags))
+        .where(Container.code == code.upper())
+    )
     container = session.execute(statement).scalar_one_or_none()
     if container is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Container not found.")
@@ -183,12 +193,14 @@ def update_container(
         Container: The updated container record.
     """
     container = _get_container_or_404(session, container_id)
-    _ensure_room_and_label_exist(session, room_id=payload.room_id, label_id=payload.label_id)
+    _ensure_room_and_tags_exist(session, room_id=payload.room_id, tag_ids=payload.tag_ids)
 
     container.name = payload.name
     container.description = payload.description
+    container.colour = payload.colour
     container.room_id = payload.room_id
-    container.label_id = payload.label_id
+    container.label_id = payload.tag_ids[0] if payload.tag_ids else None
+    container.tags = [session.get(Label, tag_id) for tag_id in payload.tag_ids]
 
     _commit_or_raise_conflict(session)
     session.refresh(container)
@@ -235,6 +247,7 @@ def _get_container_or_404(session: Session, container_id: uuid.UUID) -> Containe
             selectinload(Container.images),
             selectinload(Container.room),
             selectinload(Container.label),
+            selectinload(Container.tags),
         )
         .where(Container.id == container_id)
     )
@@ -248,7 +261,7 @@ def _build_container_list_statement(
     *,
     search: str | None,
     room_id: uuid.UUID | None,
-    label_id: uuid.UUID | None,
+    tag_id: uuid.UUID | None,
     code: str | None,
 ):
     """Build the container listing query with optional search and filters.
@@ -256,7 +269,7 @@ def _build_container_list_statement(
     Args:
         search: Optional full-text search string for code, name, and description.
         room_id: Optional room filter.
-        label_id: Optional label filter.
+        tag_id: Optional tag filter.
         code: Optional exact container code filter.
 
     Returns:
@@ -264,7 +277,7 @@ def _build_container_list_statement(
     """
     statement = (
         select(Container)
-        .options(selectinload(Container.images))
+        .options(selectinload(Container.images), selectinload(Container.tags))
         .order_by(Container.created_at.desc(), Container.code.asc())
     )
 
@@ -281,8 +294,8 @@ def _build_container_list_statement(
     if room_id is not None:
         statement = statement.where(Container.room_id == room_id)
 
-    if label_id is not None:
-        statement = statement.where(Container.label_id == label_id)
+    if tag_id is not None:
+        statement = statement.where(Container.tags.any(Label.id == tag_id))
 
     if code is not None:
         statement = statement.where(Container.code == code)
@@ -291,32 +304,34 @@ def _build_container_list_statement(
         containerscan_filters={
             "search": search,
             "room_id": room_id,
-            "label_id": label_id,
+            "tag_id": tag_id,
+            "label_id": tag_id,
             "code": code,
         }
     )
 
 
-def _ensure_room_and_label_exist(
+def _ensure_room_and_tags_exist(
     session: Session,
     *,
     room_id: uuid.UUID | None,
-    label_id: uuid.UUID | None,
+    tag_ids: list[uuid.UUID],
 ) -> None:
-    """Validate that referenced room and label records exist.
+    """Validate that referenced room and tag records exist.
 
     Args:
         session: Active database session to query.
         room_id: Identifier of the required room.
-        label_id: Identifier of the required label.
+        tag_ids: Identifiers of the required tags.
 
     Raises:
         HTTPException: If either referenced record does not exist.
     """
     if room_id is not None and session.get(Room, room_id) is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found.")
-    if label_id is not None and session.get(Label, label_id) is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Label not found.")
+    for tag_id in tag_ids:
+        if session.get(Label, tag_id) is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found.")
 
 
 def _normalize_optional_text(value: str | None) -> str | None:

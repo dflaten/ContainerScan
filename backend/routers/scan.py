@@ -27,8 +27,9 @@ def render_scan_view(container_id: uuid.UUID, session: Session = Depends(get_db_
     """Render a minimal mobile-friendly read-only scan page."""
     container = _get_scan_container_or_404(session, container_id)
     room_name = container.room.name if container.room is not None else "Unassigned Room"
-    label_name = container.label.name if container.label is not None else "Unlabeled"
-    label_colour = container.label.colour if container.label is not None else "#4B5563"
+    tag_items = container.tags if container.tags else ([container.label] if container.label is not None else [])
+    tag_names = ", ".join(tag.name for tag in tag_items) if tag_items else "Untagged"
+    label_colour = container.colour if getattr(container, "colour", None) else "#4B5563"
     description = (
         escape(container.description)
         if container.description
@@ -172,8 +173,8 @@ def render_scan_view(container_id: uuid.UUID, session: Session = Depends(get_db_
             <dd>{escape(room_name)}</dd>
           </div>
           <div>
-            <dt>Label</dt>
-            <dd>{escape(label_name)}</dd>
+            <dt>Tags</dt>
+            <dd>{escape(tag_names)}</dd>
           </div>
         </dl>
         <p class="description">{description}</p>
@@ -195,6 +196,7 @@ def _get_scan_container_or_404(session: Session, container_id: uuid.UUID) -> Con
             selectinload(Container.images),
             selectinload(Container.room),
             selectinload(Container.label),
+            selectinload(Container.tags),
         )
         .where(Container.id == container_id)
     )

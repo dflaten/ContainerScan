@@ -5,156 +5,140 @@
   export let data;
 
   const api = createApi(fetch);
+  const containerColourOptions = [
+    { value: '#3B82F6', label: 'Blue' },
+    { value: '#FACC15', label: 'Yellow' },
+    { value: '#EF4444', label: 'Red' },
+    { value: '#22C55E', label: 'Green' }
+  ];
+  const steps = [
+    {
+      eyebrow: 'Step 1',
+      title: 'Name/Description',
+      description: ''
+    },
+    {
+      eyebrow: 'Step 2',
+      title: 'Room/Tags/Color',
+      description: ''
+    },
+    {
+      eyebrow: 'Step 3',
+      title: 'Images',
+      description: ''
+    }
+  ];
 
   let container = data.container;
-  let metadataError = null;
-  let metadataNotice = data.createdNotice
+  let pageError = null;
+  let pageNotice = data.createdNotice
     ? 'Label ready. Download it now, then add the container details whenever you pack it.'
     : null;
-  let imageNotice = null;
-  let imageError = null;
-  let isSavingMetadata = false;
+  let activeStep = 0;
+  let isSavingStep = false;
   let isDeletingContainer = false;
   let isUploadingImages = false;
-  let uploadInput;
+  let selectedFiles = [];
   let form = buildForm(container);
-  let imageRows = buildImageRows(container);
 
   function buildForm(source) {
     return {
       name: source?.name ?? '',
       description: source?.description ?? '',
+      colour: source?.colour ?? '#3B82F6',
       room_id: source?.room_id ?? '',
-      label_id: source?.label_id ?? ''
+      tag_ids: source?.tag_ids ?? (source?.label_id ? [source.label_id] : [])
     };
   }
 
-  function buildImageRows(source) {
-    if (!source) {
-      return [];
-    }
-
-    return [...source.images]
-      .sort((left, right) => left.sort_order - right.sort_order || Number(right.is_primary) - Number(left.is_primary))
-      .map((image) => ({
-        id: image.id,
-        url: image.url,
-        uploaded_at: image.uploaded_at,
-        caption: image.caption ?? '',
-        sort_order: image.sort_order,
-        is_primary: image.is_primary
-      }));
+  function toggleTag(tagId) {
+    form = {
+      ...form,
+      tag_ids: form.tag_ids.includes(tagId) ? form.tag_ids.filter((id) => id !== tagId) : [...form.tag_ids, tagId]
+    };
   }
 
-  async function reloadContainer(notice = null, { preserveForm = false } = {}) {
-    const refreshed = await api.getContainer(container.id);
-    container = refreshed;
-    if (!preserveForm) {
-      form = buildForm(refreshed);
-    }
-    imageRows = buildImageRows(refreshed);
-
-    if (notice) {
-      imageNotice = notice;
-    }
-  }
-
-  async function handleMetadataSave() {
-    metadataError = null;
-    metadataNotice = null;
-    isSavingMetadata = true;
+  async function saveMetadata(notice) {
+    pageError = null;
+    pageNotice = null;
+    isSavingStep = true;
 
     try {
       container = await api.updateContainer(container.id, {
         ...form,
         room_id: form.room_id || null,
-        label_id: form.label_id || null
+        tag_ids: form.tag_ids
       });
       form = buildForm(container);
-      metadataNotice = 'Container details updated.';
+      pageNotice = notice;
+      return true;
     } catch (error) {
-      metadataError = error.detail ?? error.message ?? 'Unable to update the container.';
+      pageError = error.detail ?? error.message ?? 'Unable to update the container.';
+      return false;
     } finally {
-      isSavingMetadata = false;
+      isSavingStep = false;
     }
   }
 
-  async function handleImageUpload(event) {
-    imageError = null;
-    imageNotice = null;
+  async function handleDetailsNext() {
+    const saved = await saveMetadata('Saved name and description.');
+    if (saved) {
+      pageNotice = null;
+      activeStep = 1;
+    }
+  }
 
-    const files = Array.from(event.currentTarget.files ?? []);
-    if (files.length === 0) {
-      imageError = 'Choose at least one image to upload.';
+  async function handleOrganizationNext() {
+    const saved = await saveMetadata('Saved room and tags.');
+    if (saved) {
+      activeStep = 2;
+    }
+  }
+
+  function handleFileSelection(event) {
+    selectedFiles = Array.from(event.currentTarget.files ?? []);
+    pageError = null;
+    pageNotice = selectedFiles.length
+      ? `${selectedFiles.length} image${selectedFiles.length === 1 ? '' : 's'} ready to upload.`
+      : null;
+  }
+
+  async function handleImageFinish() {
+    pageError = null;
+    pageNotice = null;
+
+    if (selectedFiles.length === 0 && container.images.length === 0) {
+      pageError = 'Choose at least one image before finishing this container.';
       return;
     }
 
     isUploadingImages = true;
 
     try {
-      await api.uploadContainerImages(container.id, { files });
-      if (uploadInput) {
-        uploadInput.value = '';
+      if (selectedFiles.length > 0) {
+        await api.uploadContainerImages(container.id, { files: selectedFiles });
       }
-      await reloadContainer(`Uploaded ${files.length} image${files.length === 1 ? '' : 's'}.`, {
-        preserveForm: true
-      });
+      await goto('/');
     } catch (error) {
-      imageError = error.detail ?? error.message ?? 'Unable to upload images.';
+      pageError = error.detail ?? error.message ?? 'Unable to upload images.';
     } finally {
       isUploadingImages = false;
     }
-  }
-
-  async function saveImageRow(row) {
-    imageError = null;
-    imageNotice = null;
-
-    try {
-      await api.updateImage(row.id, {
-        caption: row.caption,
-        sort_order: Number(row.sort_order),
-        is_primary: row.is_primary
-      });
-      await reloadContainer('Image metadata updated.', { preserveForm: true });
-    } catch (error) {
-      imageError = error.detail ?? error.message ?? 'Unable to update the image.';
-    }
-  }
-
-  async function removeImage(row) {
-    imageError = null;
-    imageNotice = null;
-
-    try {
-      await api.deleteImage(row.id);
-      await reloadContainer('Image removed.', { preserveForm: true });
-    } catch (error) {
-      imageError = error.detail ?? error.message ?? 'Unable to delete the image.';
-    }
-  }
-
-  function roomNameFor(roomId) {
-    return data.rooms.find((room) => room.id === roomId)?.name ?? 'Not set';
-  }
-
-  function labelFor(labelId) {
-    return data.labels.find((label) => label.id === labelId) ?? null;
   }
 
   function isDraftContainer() {
     return (
       !container.description &&
       !container.room_id &&
-      !container.label_id &&
+      (!container.tag_ids || container.tag_ids.length === 0) &&
       container.images.length === 0 &&
       container.name === `Container ${container.code}`
     );
   }
 
   async function handleContainerDelete() {
-    metadataError = null;
-    metadataNotice = null;
+    pageError = null;
+    pageNotice = null;
 
     if (!window.confirm(`Delete container ${container.code}? This also removes its images.`)) {
       return;
@@ -167,7 +151,7 @@
       await api.deleteContainer(container.id);
       await goto(`/?deleted=${encodeURIComponent(deletedCode)}`);
     } catch (error) {
-      metadataError = error.detail ?? error.message ?? 'Unable to delete the container.';
+      pageError = error.detail ?? error.message ?? 'Unable to delete the container.';
       isDeletingContainer = false;
     }
   }
@@ -190,8 +174,6 @@
     </div>
   </section>
 {:else}
-  {@const currentLabel = labelFor(form.label_id)}
-
   <a class="floating-dashboard-link" href="/" aria-label="Back to dashboard" title="Back to dashboard">
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -205,6 +187,9 @@
     <article class="panel">
       <div class="panel-heading">
         <span class="eyebrow">Edit Container Details</span>
+        {#if steps[activeStep].description}
+          <p>{steps[activeStep].description}</p>
+        {/if}
       </div>
 
       {#if isDraftContainer()}
@@ -214,172 +199,166 @@
         </div>
       {/if}
 
-      {#if metadataNotice}
-        <div class="notice-banner">{metadataNotice}</div>
+      {#if pageNotice}
+        <div class="notice-banner">{pageNotice}</div>
       {/if}
 
-      {#if metadataError}
+      {#if pageError}
         <div class="diagnostics">
           <h3>Update failed</h3>
-          <p>{metadataError}</p>
+          <p>{pageError}</p>
         </div>
       {/if}
 
-      <form class="editor-grid" on:submit|preventDefault={handleMetadataSave}>
-        <div class="editor-main">
-          <label class="field">
-            <span>Container Code</span>
-            <input value={container.code} type="text" disabled />
-            <small class="field-note">Immutable after creation so printed labels stay accurate.</small>
-          </label>
+      <div class="wizard-shell">
+        {#if activeStep === 0}
+          <form class="wizard-panel" on:submit|preventDefault={handleDetailsNext}>
+            <label class="field field-disabled">
+              <span>Container Code</span>
+              <input value={container.code} type="text" disabled />
+            </label>
 
-          <label class="field">
-            <span>Name</span>
-            <input bind:value={form.name} type="text" required />
-          </label>
-
-          <label class="field field-stack">
-            <span>Description</span>
-            <textarea bind:value={form.description} rows="8"></textarea>
-          </label>
-
-          <div class="editor-columns">
             <label class="field">
-              <span>Room</span>
-              <select bind:value={form.room_id}>
-                <option value="">Not set</option>
-                {#each data.rooms as room}
-                  <option value={room.id}>{room.name}</option>
+              <span>Name</span>
+              <input bind:value={form.name} type="text" required />
+            </label>
+
+            <label class="field field-stack">
+              <span>Description</span>
+              <textarea bind:value={form.description} rows="8"></textarea>
+            </label>
+
+            <div class="wizard-actions wizard-actions-end">
+              <button class="primary-button" type="submit" disabled={isSavingStep}>
+                {isSavingStep ? 'Saving…' : 'Save and Next'}
+              </button>
+            </div>
+          </form>
+        {:else if activeStep === 1}
+          <form class="wizard-panel" on:submit|preventDefault={handleOrganizationNext}>
+            <div class="editor-columns">
+              <label class="field">
+                <span>Room</span>
+                <select bind:value={form.room_id}>
+                  <option value="">Not set</option>
+                  {#each data.rooms as room}
+                    <option value={room.id}>{room.name}</option>
+                  {/each}
+                </select>
+              </label>
+            </div>
+
+            <div class="field field-stack">
+              <span>Tags</span>
+              {#if data.tags.length === 0}
+                <div class="empty-state">
+                  <p>No tags available yet.</p>
+                </div>
+              {:else}
+                <div class="tag-picker-grid">
+                  {#each data.tags as tag}
+                    <label class:tag-option-selected={form.tag_ids.includes(tag.id)} class="tag-option">
+                      <input
+                        type="checkbox"
+                        checked={form.tag_ids.includes(tag.id)}
+                        on:change={() => toggleTag(tag.id)}
+                      />
+                      <span class="container-label-chip">
+                        <span class="label-swatch" style={`background: ${tag.colour};`}></span>
+                        {tag.name}
+                      </span>
+                    </label>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+
+            <label class="field">
+              <span>Color</span>
+              <select bind:value={form.colour} name="container_colour">
+                {#each containerColourOptions as option}
+                  <option value={option.value}>{option.label}</option>
                 {/each}
               </select>
             </label>
 
-            <label class="field">
-              <span>Tag</span>
-              <select bind:value={form.label_id}>
-                <option value="">Not set</option>
-                {#each data.labels as label}
-                  <option value={label.id}>{label.name}</option>
-                {/each}
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <aside class="editor-side">
-          <div class="support-card">
-            <span class="eyebrow">Primary Photo</span>
-            <h3>Keep the outside visible</h3>
-            <p>
-              Start with an exterior photo once the label is attached. Contents photos can follow after that.
-            </p>
-          </div>
-
-          <div class="form-actions">
-            <button type="submit" disabled={isSavingMetadata}>
-              {isSavingMetadata ? 'Saving…' : 'Save Changes'}
-            </button>
-            <button
-              class="button-danger"
-              type="button"
-              disabled={isDeletingContainer}
-              on:click={handleContainerDelete}
-            >
-              {isDeletingContainer ? 'Deleting…' : 'Delete Container'}
-            </button>
-          </div>
-        </aside>
-      </form>
-    </article>
-
-    <article class="panel panel-wide">
-      <div class="panel-heading">
-        <span class="eyebrow">Images</span>
-        <h2>Manage container photos</h2>
-      </div>
-
-      {#if imageNotice}
-        <div class="notice-banner">{imageNotice}</div>
-      {/if}
-
-      {#if imageError}
-        <div class="diagnostics">
-          <h3>Image action failed</h3>
-          <p>{imageError}</p>
-        </div>
-      {/if}
-
-      <div class="upload-strip">
-        <div class="upload-strip-copy">
-          <span class="eyebrow">Add Photos</span>
-          <h3>{isUploadingImages ? 'Uploading images…' : 'Drop in the next photos for this container'}</h3>
-          <p>
-            Start with the exterior/storage-location photo, then add contents images after it.
-          </p>
-        </div>
-
-        <label class="upload-picker">
-          <input
-            bind:this={uploadInput}
-            type="file"
-            accept="image/*"
-            multiple
-            disabled={isUploadingImages}
-            on:change={handleImageUpload}
-          />
-          <span>{isUploadingImages ? 'Uploading…' : 'Choose Images'}</span>
-        </label>
-      </div>
-
-      {#if container.images.length === 0}
-        <div class="empty-state">
-          <h3>No images uploaded yet.</h3>
-          <p>Add the exterior photo first so scans show the right physical container immediately.</p>
-        </div>
-      {:else}
-        <div class="image-editor-grid">
-          {#each imageRows as row (row.id)}
-            <article class="image-editor-card">
-              <img class="image-editor-preview" src={row.url} alt={row.caption || container.name} />
-
-              <div class="image-editor-body">
-                <div class="image-editor-topline">
-                  <strong>{row.is_primary ? 'Primary exterior photo' : 'Secondary image'}</strong>
-                  <span>Uploaded {new Date(row.uploaded_at).toLocaleDateString()}</span>
-                </div>
-
-                <label class="field field-stack">
-                  <span>Caption</span>
-                  <input bind:value={row.caption} type="text" placeholder="Front shelf view" />
-                </label>
-
-                <div class="editor-columns image-editor-controls">
-                  <label class="field">
-                    <span>Sort Order</span>
-                    <input bind:value={row.sort_order} type="number" min="0" />
-                  </label>
-
-                  <label class="checkbox-field">
-                    <input bind:checked={row.is_primary} type="checkbox" />
-                    <span>Use as primary image</span>
-                  </label>
-                </div>
-
-                <div class="form-actions">
-                  <button type="button" on:click={() => saveImageRow(row)}>Save Image Details</button>
-                  <button class="button-danger" type="button" on:click={() => removeImage(row)}>
-                    Delete Image
-                  </button>
-                </div>
+            <div class="wizard-actions">
+              <button type="button" class="secondary-button" on:click={() => (activeStep = 0)}>Back</button>
+              <button class="primary-button" type="submit" disabled={isSavingStep}>
+                {isSavingStep ? 'Saving…' : 'Save and Next'}
+              </button>
+            </div>
+          </form>
+        {:else}
+          <section class="wizard-panel">
+            <div class="upload-strip">
+              <div class="upload-strip-copy">
+                <span class="eyebrow">Add Photos</span>
+                {#if container.images.length > 0}
+                  <span>{container.images.length} already saved</span>
+                {/if}
               </div>
-            </article>
-          {/each}
-        </div>
-      {/if}
+
+              {#if container.images.length > 0}
+                <div class="existing-images">
+                  <div class="existing-images-grid">
+                    {#each container.images as image (image.id)}
+                      <img class="existing-image-thumb" src={image.url} alt={image.caption || container.name} />
+                    {/each}
+                  </div>
+                </div>
+              {/if}
+
+              <label class="upload-picker">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  disabled={isUploadingImages}
+                  on:change={handleFileSelection}
+                />
+                <span>{selectedFiles.length > 0 ? 'Change Images' : 'Choose Images'}</span>
+              </label>
+            </div>
+
+            {#if selectedFiles.length > 0}
+              <div class="selection-summary">
+                <strong>{selectedFiles.length} image{selectedFiles.length === 1 ? '' : 's'} selected</strong>
+                <ul class="selection-list">
+                  {#each selectedFiles as file}
+                    <li>{file.name}</li>
+                  {/each}
+                </ul>
+              </div>
+            {/if}
+
+            <div class="wizard-actions">
+              <button type="button" class="secondary-button" disabled={isUploadingImages} on:click={() => (activeStep = 1)}>
+                Back
+              </button>
+              <button class="primary-button" type="button" disabled={isUploadingImages} on:click={handleImageFinish}>
+                {isUploadingImages ? 'Uploading…' : 'Save and Finish'}
+              </button>
+            </div>
+          </section>
+        {/if}
+      </div>
+
+      <div class="bottom-stepper" aria-label="Edit container steps">
+        {#each steps as step, index}
+          <div class:bottom-stepper-item-active={index === activeStep} class="bottom-stepper-item">
+            <span class="bottom-stepper-dot" aria-hidden="true">{index + 1}</span>
+            <span class="bottom-stepper-label">{step.title}</span>
+          </div>
+        {/each}
+      </div>
     </article>
   </section>
 
   <div class="detail-page-actions">
     <a class="primary-link" href={api.getQrDownloadPath(container.id)}>Download QR Label</a>
+    <button class="button-danger" type="button" disabled={isDeletingContainer} on:click={handleContainerDelete}>
+      {isDeletingContainer ? 'Deleting…' : 'Delete Container'}
+    </button>
   </div>
 {/if}

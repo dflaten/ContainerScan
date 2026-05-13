@@ -30,8 +30,11 @@ function buildContainer(overrides = {}) {
     code: 'AA-11',
     name: 'Garage Box 3',
     description: 'Camping gear',
+    colour: '#3B82F6',
     room_id: 'room-1',
     label_id: 'label-1',
+    tag_ids: ['label-1'],
+    tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
     images: [
       {
         id: 'image-1',
@@ -52,7 +55,7 @@ function buildData(overrides = {}) {
     containerError: null,
     createdNotice: false,
     rooms: [{ id: 'room-1', name: 'Garage' }],
-    labels: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
+    tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
     ...overrides
   };
 }
@@ -98,18 +101,20 @@ describe('container detail route', () => {
     await fireEvent.input(screen.getByLabelText('Name'), {
       target: { value: 'Updated Garage Box 3' }
     });
-    await fireEvent.click(screen.getByRole('button', { name: /save changes/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
 
     await waitFor(() => {
       expect(mocks.api.updateContainer).toHaveBeenCalledWith('container-1', {
         name: 'Updated Garage Box 3',
         description: 'Camping gear',
+        colour: '#3B82F6',
         room_id: 'room-1',
-        label_id: 'label-1'
+        tag_ids: ['label-1']
       });
     });
 
-    expect(screen.getByText(/container details updated\./i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Room')).toBeInTheDocument();
+    expect(screen.getByText('Room/Tags/Color')).toBeInTheDocument();
   });
 
   test('deletes the container after confirmation and redirects to the dashboard', async () => {
@@ -126,9 +131,63 @@ describe('container detail route', () => {
     expect(mocks.goto).toHaveBeenCalledWith('/?deleted=AA-11');
   });
 
-  test('preserves unsaved metadata edits when uploading images', async () => {
+  test('saves room and tags before advancing to the images step', async () => {
+    mocks.api.updateContainer.mockResolvedValue(buildContainer());
+
+    render(Page, { data: buildData() });
+
+    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+    await screen.findByLabelText('Room');
+
+    await fireEvent.change(screen.getByLabelText('Room'), {
+      target: { value: 'room-1' }
+    });
+    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+
+    await waitFor(() => {
+      expect(mocks.api.updateContainer).toHaveBeenLastCalledWith('container-1', {
+        name: 'Garage Box 3',
+        description: 'Camping gear',
+        colour: '#3B82F6',
+        room_id: 'room-1',
+        tag_ids: ['label-1']
+      });
+    });
+
+    expect(screen.getByText('Images')).toBeInTheDocument();
+    expect(screen.getByText('1 already saved')).toBeInTheDocument();
+  });
+
+  test('uploads selected images on the final step and redirects to the dashboard', async () => {
+    mocks.api.updateContainer.mockResolvedValue(buildContainer());
     mocks.api.uploadContainerImages.mockResolvedValue([]);
-    mocks.api.getContainer.mockResolvedValue(
+
+    render(Page, { data: buildData({ container: buildContainer({ images: [] }) }) });
+
+    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+    await screen.findByLabelText('Room');
+    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+    await screen.findByText('1 already saved');
+
+    const uploadInput = document.querySelector('.upload-picker input');
+    const file = new File(['image-bytes'], 'inside.jpg', { type: 'image/jpeg' });
+
+    expect(uploadInput).not.toBeNull();
+    await fireEvent.change(uploadInput, {
+      target: { files: [file] }
+    });
+    await fireEvent.click(screen.getByRole('button', { name: /save and finish/i }));
+
+    await waitFor(() => {
+      expect(mocks.api.uploadContainerImages).toHaveBeenCalledWith('container-1', {
+        files: [file]
+      });
+    });
+    expect(mocks.goto).toHaveBeenCalledWith('/');
+  });
+
+  test('shows the existing images on the final step', async () => {
+    mocks.api.updateContainer.mockResolvedValue(
       buildContainer({
         images: [
           {
@@ -153,29 +212,11 @@ describe('container detail route', () => {
 
     render(Page, { data: buildData() });
 
-    await fireEvent.input(screen.getByLabelText('Name'), {
-      target: { value: 'Unsaved name draft' }
-    });
-    await fireEvent.input(screen.getByLabelText('Description'), {
-      target: { value: 'Unsaved description draft' }
-    });
+    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+    await screen.findByLabelText('Room');
+    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
 
-    const uploadInput = document.querySelector('.upload-picker input');
-    const file = new File(['image-bytes'], 'inside.jpg', { type: 'image/jpeg' });
-    expect(uploadInput).not.toBeNull();
-    await fireEvent.change(uploadInput, {
-      target: { files: [file] }
-    });
-
-    await waitFor(() => {
-      expect(mocks.api.uploadContainerImages).toHaveBeenCalledWith('container-1', {
-        files: [file]
-      });
-    });
-
-    expect(screen.getByLabelText('Name')).toHaveValue('Unsaved name draft');
-    expect(screen.getByLabelText('Description')).toHaveValue('Unsaved description draft');
-    expect(screen.getByText(/uploaded 1 image\./i)).toBeInTheDocument();
+    expect(screen.getByText(/2 already saved/i)).toBeInTheDocument();
     expect(screen.getByAltText('Inside bin')).toBeInTheDocument();
   });
 });

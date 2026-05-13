@@ -71,13 +71,22 @@ def _build_image(*, container_id: uuid.UUID, sort_order: int, caption: str | Non
     )
 
 
-def _build_container(*, code: str, name: str, description: str, room: Room, label: Label) -> Container:
+def _build_container(
+    *,
+    code: str,
+    name: str,
+    description: str,
+    room: Room,
+    label: Label,
+    colour: str = "#3B82F6",
+) -> Container:
     now = datetime.now(timezone.utc)
     return Container(
         id=uuid.uuid4(),
         code=code,
         name=name,
         description=description,
+        colour=colour,
         room_id=room.id,
         label_id=label.id,
         created_at=now,
@@ -108,6 +117,7 @@ def test_get_scan_container_returns_read_only_container_data() -> None:
     assert result.id == container.id
     assert result.room.name == "Garage"
     assert result.label.colour == "#AABBCC"
+    assert result.colour == "#3B82F6"
     assert result.images[0].url == f"/images/{image.filename}"
 
 
@@ -121,6 +131,7 @@ def test_render_scan_view_returns_mobile_friendly_read_only_html() -> None:
         description="LED strings and extension cords",
         room=room,
         label=label,
+        colour="#EF4444",
     )
     image = _build_image(container_id=container.id, sort_order=0, caption="Primary exterior")
     container.images = [image]
@@ -135,6 +146,7 @@ def test_render_scan_view_returns_mobile_friendly_read_only_html() -> None:
     assert "Holiday Lights" in html
     assert "Attic" in html
     assert "Seasonal" in html
+    assert "#EF4444" in html
     assert image.url in html
     assert "Primary exterior" in html
 
@@ -147,6 +159,7 @@ def test_render_scan_view_handles_not_yet_documented_containers() -> None:
         code="LM-44",
         name="Container LM-44",
         description="",
+        colour="#3B82F6",
         room_id=None,
         label_id=None,
         created_at=now,
@@ -162,7 +175,7 @@ def test_render_scan_view_handles_not_yet_documented_containers() -> None:
 
     assert response.status_code == 200
     assert "Unassigned Room" in html
-    assert "Unlabeled" in html
+    assert "Untagged" in html
     assert "This container has not been documented yet." in html
 
 

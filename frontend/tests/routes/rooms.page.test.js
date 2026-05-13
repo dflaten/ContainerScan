@@ -5,8 +5,8 @@ const mocks = vi.hoisted(() => ({
   api: {
     createRoom: vi.fn(),
     deleteRoom: vi.fn(),
-    createLabel: vi.fn(),
-    deleteLabel: vi.fn()
+    createTag: vi.fn(),
+    deleteTag: vi.fn()
   }
 }));
 
@@ -22,9 +22,9 @@ function buildData(overrides = {}) {
       { id: 'room-1', name: 'Garage' },
       { id: 'room-2', name: 'Attic' }
     ],
-    labels: [
-      { id: 'label-1', name: 'Tools', colour: '#AABBCC' },
-      { id: 'label-2', name: 'Holiday', colour: '#CC8844' }
+    tags: [
+      { id: 'label-1', name: 'Tools', colour: '#3B82F6' },
+      { id: 'label-2', name: 'Holiday', colour: '#FACC15' }
     ],
     ...overrides
   };
@@ -34,8 +34,8 @@ describe('rooms management route', () => {
   beforeEach(() => {
     mocks.api.createRoom.mockReset();
     mocks.api.deleteRoom.mockReset();
-    mocks.api.createLabel.mockReset();
-    mocks.api.deleteLabel.mockReset();
+    mocks.api.createTag.mockReset();
+    mocks.api.deleteTag.mockReset();
   });
 
   test('creates a room and shows it in the list', async () => {
@@ -74,22 +74,18 @@ describe('rooms management route', () => {
   });
 
   test('creates a tag and shows it in the list', async () => {
-    mocks.api.createLabel.mockResolvedValue({ id: 'label-3', name: 'Archive', colour: '#123456' });
+    mocks.api.createTag.mockResolvedValue({ id: 'label-3', name: 'Archive', colour: '#EF4444' });
 
     render(Page, { data: buildData() });
 
     await fireEvent.input(screen.getByPlaceholderText('enter tag name here'), {
       target: { value: 'Archive' }
     });
-    const colourInput = document.querySelector('.label-colour-input');
-    expect(colourInput).not.toBeNull();
-    await fireEvent.input(colourInput, {
-      target: { value: '#123456' }
-    });
+    await fireEvent.click(screen.getByRole('radio', { name: /red/i }));
     await fireEvent.click(screen.getByRole('button', { name: /add tag/i }));
 
     await waitFor(() => {
-      expect(mocks.api.createLabel).toHaveBeenCalledWith({ name: 'Archive', colour: '#123456' });
+      expect(mocks.api.createTag).toHaveBeenCalledWith({ name: 'Archive', colour: '#EF4444' });
     });
 
     expect(screen.getByText(/added tag archive\./i)).toBeInTheDocument();
@@ -97,7 +93,7 @@ describe('rooms management route', () => {
   });
 
   test('removes a tag from the list', async () => {
-    mocks.api.deleteLabel.mockResolvedValue(null);
+    mocks.api.deleteTag.mockResolvedValue(null);
 
     render(Page, { data: buildData() });
 
@@ -106,7 +102,7 @@ describe('rooms management route', () => {
     await fireEvent.click(holidayRow.querySelector('button'));
 
     await waitFor(() => {
-      expect(mocks.api.deleteLabel).toHaveBeenCalledWith('label-2');
+      expect(mocks.api.deleteTag).toHaveBeenCalledWith('label-2');
     });
 
     expect(screen.queryByText('Holiday')).not.toBeInTheDocument();

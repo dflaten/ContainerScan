@@ -4,20 +4,26 @@
   export let data;
 
   const api = createApi(fetch);
+  const tagColourOptions = [
+    { value: '#3B82F6', label: 'Blue' },
+    { value: '#FACC15', label: 'Yellow' },
+    { value: '#EF4444', label: 'Red' },
+    { value: '#22C55E', label: 'Green' }
+  ];
 
   let rooms = [...data.rooms];
-  let labels = [...data.labels];
+  let tags = [...data.tags];
   let roomName = '';
-  let labelName = '';
-  let labelColour = '#A86720';
+  let tagName = '';
+  let tagColour = '#3B82F6';
   let roomNotice = null;
   let roomError = null;
-  let labelNotice = null;
-  let labelError = null;
+  let tagNotice = null;
+  let tagError = null;
   let isCreatingRoom = false;
-  let isCreatingLabel = false;
+  let isCreatingTag = false;
   let deletingRoomIds = new Set();
-  let deletingLabelIds = new Set();
+  let deletingTagIds = new Set();
 
   async function handleCreateRoom() {
     const normalizedName = roomName.trim();
@@ -60,45 +66,45 @@
     }
   }
 
-  async function handleCreateLabel() {
-    const normalizedName = labelName.trim();
+  async function handleCreateTag() {
+    const normalizedName = tagName.trim();
     if (!normalizedName) {
-      labelError = 'Enter a tag name.';
+      tagError = 'Enter a tag name.';
       return;
     }
 
-    labelError = null;
-    labelNotice = null;
-    isCreatingLabel = true;
+    tagError = null;
+    tagNotice = null;
+    isCreatingTag = true;
 
     try {
-      const createdLabel = await api.createLabel({ name: normalizedName, colour: labelColour });
-      labels = [...labels, createdLabel].sort((left, right) => left.name.localeCompare(right.name));
-      labelName = '';
-      labelColour = '#A86720';
-      labelNotice = `Added tag ${createdLabel.name}.`;
+      const createdTag = await api.createTag({ name: normalizedName, colour: tagColour });
+      tags = [...tags, createdTag].sort((left, right) => left.name.localeCompare(right.name));
+      tagName = '';
+      tagColour = '#3B82F6';
+      tagNotice = `Added tag ${createdTag.name}.`;
     } catch (requestError) {
-      labelError = requestError.detail ?? requestError.message ?? 'Unable to create the tag.';
+      tagError = requestError.detail ?? requestError.message ?? 'Unable to create the tag.';
     } finally {
-      isCreatingLabel = false;
+      isCreatingTag = false;
     }
   }
 
-  async function handleDeleteLabel(label) {
-    labelError = null;
-    labelNotice = null;
-    deletingLabelIds = new Set([...deletingLabelIds, label.id]);
+  async function handleDeleteTag(tag) {
+    tagError = null;
+    tagNotice = null;
+    deletingTagIds = new Set([...deletingTagIds, tag.id]);
 
     try {
-      await api.deleteLabel(label.id);
-      labels = labels.filter((entry) => entry.id !== label.id);
-      labelNotice = `Removed tag ${label.name}.`;
+      await api.deleteTag(tag.id);
+      tags = tags.filter((entry) => entry.id !== tag.id);
+      tagNotice = `Removed tag ${tag.name}.`;
     } catch (requestError) {
-      labelError = requestError.detail ?? requestError.message ?? 'Unable to remove the tag.';
+      tagError = requestError.detail ?? requestError.message ?? 'Unable to remove the tag.';
     } finally {
-      const nextDeletingIds = new Set(deletingLabelIds);
-      nextDeletingIds.delete(label.id);
-      deletingLabelIds = nextDeletingIds;
+      const nextDeletingIds = new Set(deletingTagIds);
+      nextDeletingIds.delete(tag.id);
+      deletingTagIds = nextDeletingIds;
     }
   }
 </script>
@@ -178,14 +184,14 @@
   </article>
 
   <article class="panel panel-wide">
-    {#if labelNotice}
-      <div class="notice-banner">{labelNotice}</div>
+    {#if tagNotice}
+      <div class="notice-banner">{tagNotice}</div>
     {/if}
 
-    {#if labelError}
+    {#if tagError}
       <div class="diagnostics">
         <h3>Tag update failed</h3>
-        <p>{labelError}</p>
+        <p>{tagError}</p>
       </div>
     {/if}
 
@@ -195,23 +201,30 @@
         <h2>Create and remove tags for container organization</h2>
       </div>
 
-      <form class="label-create-form" on:submit|preventDefault={handleCreateLabel}>
+      <form class="label-create-form" on:submit|preventDefault={handleCreateTag}>
         <div class="editor-columns">
           <label class="field field-stack">
             <span>Tag Name</span>
-            <input bind:value={labelName} type="text" placeholder="enter tag name here" />
+            <input bind:value={tagName} type="text" placeholder="enter tag name here" />
           </label>
 
           <label class="field field-stack">
             <span>Tag Colour</span>
-            <input bind:value={labelColour} class="label-colour-input" type="color" />
-            <small class="field-note">{labelColour}</small>
+            <div class="tag-colour-options" role="radiogroup" aria-label="Tag Colour">
+              {#each tagColourOptions as option}
+                <label class:tag-colour-option-selected={tagColour === option.value} class="tag-colour-option">
+                  <input bind:group={tagColour} type="radio" name="tag_colour" value={option.value} />
+                  <span class="label-swatch" style={`background: ${option.value};`}></span>
+                  <span>{option.label}</span>
+                </label>
+              {/each}
+            </div>
           </label>
         </div>
 
         <div class="form-actions">
-          <button type="submit" disabled={isCreatingLabel}>
-            {isCreatingLabel ? 'Adding…' : 'Add Tag'}
+          <button type="submit" disabled={isCreatingTag}>
+            {isCreatingTag ? 'Adding…' : 'Add Tag'}
           </button>
         </div>
       </form>
@@ -223,30 +236,30 @@
         <h2>Current tag list</h2>
       </div>
 
-      {#if labels.length === 0}
+      {#if tags.length === 0}
         <div class="empty-state">
           <h3>No tags yet.</h3>
           <p>Add your first tag above so it can be assigned to containers.</p>
         </div>
       {:else}
         <div class="room-list">
-          {#each labels as label (label.id)}
+          {#each tags as tag (tag.id)}
             <article class="room-list-item">
               <div class="room-list-copy room-list-copy-labelled">
-                <strong>{label.name}</strong>
+                <strong>{tag.name}</strong>
                 <span class="container-label-chip">
-                  <span class="label-swatch" style={`background: ${label.colour};`}></span>
-                  {label.colour}
+                  <span class="label-swatch" style={`background: ${tag.colour};`}></span>
+                  {tag.colour}
                 </span>
               </div>
 
               <button
                 class="room-remove-button"
                 type="button"
-                disabled={deletingLabelIds.has(label.id)}
-                on:click={() => handleDeleteLabel(label)}
+                disabled={deletingTagIds.has(tag.id)}
+                on:click={() => handleDeleteTag(tag)}
               >
-                {deletingLabelIds.has(label.id) ? 'Removing…' : 'Remove'}
+                {deletingTagIds.has(tag.id) ? 'Removing…' : 'Remove'}
               </button>
             </article>
           {/each}

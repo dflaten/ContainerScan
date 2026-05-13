@@ -21,7 +21,7 @@ import Page from '../../src/routes/containers/new/+page.svelte';
 function buildData(overrides = {}) {
   return {
     rooms: [{ id: 'room-1', name: 'Garage' }],
-    labels: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
+    tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
     ...overrides
   };
 }
@@ -36,7 +36,7 @@ describe('create container route', () => {
     render(Page, {
       data: buildData({
         rooms: [],
-        labels: []
+        tags: []
       })
     });
 
@@ -56,8 +56,9 @@ describe('create container route', () => {
     await waitFor(() => {
       expect(mocks.api.createContainer).toHaveBeenCalledWith({
         name: 'Garage Box 7',
+        colour: '#3B82F6',
         room_id: null,
-        label_id: null
+        tag_ids: []
       });
     });
     expect(mocks.goto).toHaveBeenCalledWith('/containers/container-7?created=1');

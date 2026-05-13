@@ -3,11 +3,19 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CHAR, CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Text, func, text
+from sqlalchemy import CHAR, CheckConstraint, DateTime, ForeignKey, Index, Integer, String, Table, Text, Column, func, text
 from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from database import Base
+
+container_tags_table = Table(
+    "container_tags",
+    Base.metadata,
+    Column("container_id", UUID(as_uuid=True), ForeignKey("containers.id", ondelete="CASCADE"), primary_key=True),
+    Column("label_id", UUID(as_uuid=True), ForeignKey("labels.id", ondelete="CASCADE"), primary_key=True),
+    Index("ix_container_tags_label_id", "label_id"),
+)
 
 
 class Room(Base):
@@ -43,7 +51,11 @@ class Label(Base):
         nullable=False,
     )
 
-    containers: Mapped[list["Container"]] = relationship(back_populates="label")
+    primary_containers: Mapped[list["Container"]] = relationship(back_populates="label")
+    tagged_containers: Mapped[list["Container"]] = relationship(
+        secondary=container_tags_table,
+        back_populates="tags",
+    )
 
 
 class Container(Base):
@@ -61,6 +73,7 @@ class Container(Base):
     code: Mapped[str] = mapped_column(CHAR(5), unique=True, nullable=False)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False, server_default=text("''"))
+    colour: Mapped[str] = mapped_column(String(7), nullable=False, server_default=text("'#3B82F6'"))
     room_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("rooms.id", ondelete="RESTRICT"),
@@ -88,7 +101,12 @@ class Container(Base):
     )
 
     room: Mapped[Room | None] = relationship(back_populates="containers")
-    label: Mapped[Label | None] = relationship(back_populates="containers")
+    label: Mapped[Label | None] = relationship(back_populates="primary_containers")
+    tags: Mapped[list[Label]] = relationship(
+        secondary=container_tags_table,
+        back_populates="tagged_containers",
+        order_by="Label.name",
+    )
     images: Mapped[list["Image"]] = relationship(
         back_populates="container",
         cascade="all, delete-orphan",
@@ -96,6 +114,11 @@ class Container(Base):
         order_by="Image.sort_order",
     )
     print_sheet_items: Mapped[list["PrintSheetItem"]] = relationship(back_populates="container")
+
+    @property
+    def tag_ids(self) -> list[uuid.UUID]:
+        """Expose ordered tag identifiers for API serialization."""
+        return [tag.id for tag in self.tags]
 
 
 class Image(Base):

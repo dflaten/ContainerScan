@@ -12,6 +12,7 @@ function buildData(overrides = {}) {
       description: 'Camping gear and lanterns',
       room: { id: 'room-1', name: 'Garage' },
       label: { id: 'label-1', name: 'Tools', colour: '#AABBCC' },
+      tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
       images: [
         {
           id: 'image-1',

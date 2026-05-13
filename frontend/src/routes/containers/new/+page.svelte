@@ -5,15 +5,23 @@
   export let data;
 
   const roomOptions = data.rooms;
-  const labelOptions = data.labels;
+  const tagOptions = data.tags;
 
   let form = {
     name: '',
+    colour: '#3B82F6',
     room_id: '',
-    label_id: ''
+    tag_ids: []
   };
   let isSubmitting = false;
   let submitError = null;
+
+  function toggleTag(tagId) {
+    form = {
+      ...form,
+      tag_ids: form.tag_ids.includes(tagId) ? form.tag_ids.filter((id) => id !== tagId) : [...form.tag_ids, tagId]
+    };
+  }
 
   async function handleCreate() {
     submitError = null;
@@ -24,8 +32,9 @@
     try {
       const createdContainer = await api.createContainer({
         name: form.name || null,
+        colour: form.colour,
         room_id: form.room_id || null,
-        label_id: form.label_id || null
+        tag_ids: form.tag_ids
       });
       await goto(`/containers/${createdContainer.id}?created=1`);
     } catch (error) {
@@ -45,7 +54,7 @@
   <h1>Create the record first, fill in the box later.</h1>
   <p>
     Generate a new code and print the QR label now. You can come back after packing the container to
-    add the contents, location, label, and photos.
+    add the contents, location, tags, and photos.
   </p>
 
   <div class="hero-actions">
@@ -56,7 +65,7 @@
 <section class="content-grid">
   <article class="panel panel-wide">
     <div class="panel-heading">
-      <span class="eyebrow">Label Setup</span>
+      <span class="eyebrow">Tag Setup</span>
       <h2>Generate a new container code</h2>
     </div>
 
@@ -86,15 +95,30 @@
             </select>
           </label>
 
-          <label class="field">
-            <span>Tag</span>
-            <select bind:value={form.label_id} name="label_id">
-              <option value="">Not set</option>
-              {#each labelOptions as label}
-                <option value={label.id}>{label.name}</option>
-              {/each}
-            </select>
-          </label>
+          <div class="field field-stack">
+            <span>Tags</span>
+            {#if tagOptions.length === 0}
+              <div class="empty-state">
+                <p>No tags available yet.</p>
+              </div>
+            {:else}
+              <div class="tag-picker-grid">
+                {#each tagOptions as tag}
+                  <label class:tag-option-selected={form.tag_ids.includes(tag.id)} class="tag-option">
+                    <input
+                      type="checkbox"
+                      checked={form.tag_ids.includes(tag.id)}
+                      on:change={() => toggleTag(tag.id)}
+                    />
+                    <span class="container-label-chip">
+                      <span class="label-swatch" style={`background: ${tag.colour};`}></span>
+                      {tag.name}
+                    </span>
+                  </label>
+                {/each}
+              </div>
+            {/if}
+          </div>
         </div>
       </div>
 
