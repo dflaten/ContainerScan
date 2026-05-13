@@ -7,12 +7,12 @@
   let filters = {
     search: data.filters.search,
     room_id: data.filters.room_id,
-    label_id: data.filters.label_id
+    tag_id: data.filters.tag_id
   };
   let lastSyncedFilters = {
     search: data.filters.search,
     room_id: data.filters.room_id,
-    label_id: data.filters.label_id
+    tag_id: data.filters.tag_id
   };
   let searchTimer;
 
@@ -20,8 +20,8 @@
     return data.rooms.find((room) => room.id === roomId)?.name ?? 'Not set';
   }
 
-  function labelFor(labelId) {
-    return data.labels.find((label) => label.id === labelId) ?? null;
+  function tagsFor(container) {
+    return container.tags ?? [];
   }
 
   function primaryImageFor(container) {
@@ -32,14 +32,14 @@
     return (
       !container.description &&
       !container.room_id &&
-      !container.label_id &&
+      (!container.tag_ids || container.tag_ids.length === 0) &&
       container.images.length === 0 &&
       container.name === `Container ${container.code}`
     );
   }
 
   function isFilterActive() {
-    return Boolean(data.filters.search || data.filters.room_id || data.filters.label_id);
+    return Boolean(data.filters.search || data.filters.room_id || data.filters.tag_id);
   }
 
   function buildAdvancedSearchQuery(nextFilters) {
@@ -51,8 +51,8 @@
     if (nextFilters.room_id) {
       params.set('room_id', nextFilters.room_id);
     }
-    if (nextFilters.label_id) {
-      params.set('label_id', nextFilters.label_id);
+    if (nextFilters.tag_id) {
+      params.set('tag_id', nextFilters.tag_id);
     }
 
     const query = params.toString();
@@ -82,17 +82,17 @@
   $: if (
     data.filters.search !== lastSyncedFilters.search ||
     data.filters.room_id !== lastSyncedFilters.room_id ||
-    data.filters.label_id !== lastSyncedFilters.label_id
+    data.filters.tag_id !== lastSyncedFilters.tag_id
   ) {
     filters = {
       search: data.filters.search,
       room_id: data.filters.room_id,
-      label_id: data.filters.label_id
+      tag_id: data.filters.tag_id
     };
     lastSyncedFilters = {
       search: data.filters.search,
       room_id: data.filters.room_id,
-      label_id: data.filters.label_id
+      tag_id: data.filters.tag_id
     };
   }
 
@@ -134,11 +134,11 @@
       </label>
 
       <label class="field">
-        <span>Label</span>
-        <select name="label_id" bind:value={filters.label_id} on:change={handleFilterChange}>
-          <option value="">All labels</option>
-          {#each data.labels as label}
-            <option value={label.id}>{label.name}</option>
+        <span>Tag</span>
+        <select name="tag_id" bind:value={filters.tag_id} on:change={handleFilterChange}>
+          <option value="">All tags</option>
+          {#each data.tags as tag}
+            <option value={tag.id}>{tag.name}</option>
           {/each}
         </select>
       </label>
@@ -180,7 +180,7 @@
       {#if pendingContainers.length > 0}
         <div class="panel-heading">
           <span class="eyebrow">Needs Details</span>
-          <h3>Labels generated, waiting to be filled in</h3>
+          <h3>Tags generated, waiting to be filled in</h3>
         </div>
 
         <div class="dashboard-grid">
@@ -198,7 +198,7 @@
                     </div>
 
                     <h3>{container.name}</h3>
-                    <p>Print the label now, then add the contents, room, label, and photos later.</p>
+                    <p>Print the label now, then add the contents, room, tags, and photos later.</p>
                   </div>
                 </div>
               </a>
@@ -217,8 +217,8 @@
 
         <div class="dashboard-grid">
           {#each documentedContainers as container}
-            {@const label = labelFor(container.label_id)}
             {@const image = primaryImageFor(container)}
+            {@const tags = tagsFor(container)}
             <article class="container-card">
               <a class="card-link" href={`/containers/${container.id}`}>
                 <div class="card-content-box">
@@ -233,12 +233,12 @@
                   <div class="card-body">
                     <div class="card-topline">
                       <span class="container-code">{container.code}</span>
-                      {#if label}
+                      {#each tags as tag}
                         <span class="container-label-chip">
-                          <span class="label-swatch" style={`background: ${label.colour};`}></span>
-                          {label.name}
+                          <span class="label-swatch" style={`background: ${tag.colour};`}></span>
+                          {tag.name}
                         </span>
-                      {/if}
+                      {/each}
                     </div>
 
                     <h3>{container.name}</h3>

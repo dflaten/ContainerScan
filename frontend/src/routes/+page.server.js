@@ -31,6 +31,6 @@ export async function load({ fetch, parent, url }) {
     containers: containerResult.ok ? containerResult.data : [],
     containerError: containerResult.ok ? null : containerResult.error.detail ?? containerResult.error.message,
     rooms: parentData.rooms,
-    labels: parentData.labels
+    tags: parentData.tags
   };
 }

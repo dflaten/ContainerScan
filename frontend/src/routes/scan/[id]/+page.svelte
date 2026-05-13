@@ -6,7 +6,7 @@
   let lightboxImage = null;
 
   function labelColour() {
-    return data.container?.label?.colour ?? '#4A7560';
+    return data.container?.tags?.[0]?.colour ?? data.container?.label?.colour ?? '#4A7560';
   }
 
   function goToPreviousImage() {
@@ -63,9 +63,9 @@
           <span class="scan-pill">
             {data.container.room?.name ?? 'Room not set'}
           </span>
-          {#if data.container.label}
-            <span class="scan-pill scan-pill-label">{data.container.label.name}</span>
-          {/if}
+          {#each data.container.tags ?? [] as tag}
+            <span class="scan-pill scan-pill-label">{tag.name}</span>
+          {/each}
         </div>
         <div class="scan-header-actions">
           <a class="scan-edit-link" href={`/containers/${data.container.id}`}>

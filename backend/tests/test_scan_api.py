@@ -162,7 +162,7 @@ def test_render_scan_view_handles_not_yet_documented_containers() -> None:
 
     assert response.status_code == 200
     assert "Unassigned Room" in html
-    assert "Unlabeled" in html
+    assert "Untagged" in html
     assert "This container has not been documented yet." in html
 
 

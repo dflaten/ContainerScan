@@ -12,7 +12,7 @@ export async function load({ fetch, params, parent, url }) {
       ? null
       : containerResult.error.detail ?? containerResult.error.message,
     createdNotice: url.searchParams.get('created') === '1',
-    labels: parentData.labels,
+    tags: parentData.tags,
     rooms: parentData.rooms
   };
 }

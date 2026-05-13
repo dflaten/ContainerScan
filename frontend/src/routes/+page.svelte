@@ -18,11 +18,15 @@
     return container.images.find((image) => image.is_primary) ?? container.images[0] ?? null;
   }
 
+  function tagsFor(container) {
+    return container.tags ?? [];
+  }
+
   function isPendingContainer(container) {
     return (
       !container.description &&
       !container.room_id &&
-      !container.label_id &&
+      (!container.tag_ids || container.tag_ids.length === 0) &&
       container.images.length === 0 &&
       container.name === `Container ${container.code}`
     );
@@ -135,7 +139,7 @@
       </article>
 
       <article class="dashboard-stat">
-        <span class="dashboard-stat-label">Empty labels</span>
+        <span class="dashboard-stat-label">Needs details</span>
         <strong>{pendingContainers.length}</strong>
       </article>
     </div>
@@ -219,6 +223,7 @@
         <div class="dashboard-grid">
           {#each documentedContainers as container}
             {@const image = primaryImageFor(container)}
+            {@const tags = tagsFor(container)}
             <article class="container-card">
               <a class="card-link" href={`/containers/${container.id}`}>
                 <div class="card-content-box">
@@ -233,6 +238,12 @@
                   <div class="card-body">
                     <div class="card-topline">
                       <span class="container-code">{container.code}</span>
+                      {#each tags as tag}
+                        <span class="container-label-chip">
+                          <span class="label-swatch" style={`background: ${tag.colour};`}></span>
+                          {tag.name}
+                        </span>
+                      {/each}
                     </div>
 
                     <h3>{container.name}</h3>
@@ -248,7 +259,7 @@
       {#if pendingContainers.length > 0}
         {#if documentedContainers.length > 0}
           <div class="panel-heading">
-            <span class="eyebrow">Empty Labels</span>
+            <span class="eyebrow">Needs Details</span>
           </div>
         {/if}
 
@@ -267,7 +278,7 @@
                     </div>
 
                     <h3>{container.name}</h3>
-                    <p>Print the label now, then add the contents, room, label, and photos later.</p>
+                    <p>Print the label now, then add the contents, room, tags, and photos later.</p>
                   </div>
                 </div>
               </a>

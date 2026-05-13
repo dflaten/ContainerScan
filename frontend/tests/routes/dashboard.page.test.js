@@ -24,7 +24,7 @@ function buildDashboardData(overrides = {}) {
     filters: {
       search: '',
       room_id: '',
-      label_id: ''
+      tag_id: ''
     },
     containerError: null,
     containers: [
@@ -35,11 +35,13 @@ function buildDashboardData(overrides = {}) {
         description: 'Camping gear',
         room_id: 'room-1',
         label_id: 'label-1',
+        tag_ids: ['label-1'],
+        tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
         images: []
       }
     ],
     rooms: [{ id: 'room-1', name: 'Garage' }],
-    labels: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
+    tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
     ...overrides
   };
 }
@@ -75,7 +77,7 @@ describe('dashboard route', () => {
     ).toBeInTheDocument();
   });
 
-  test('shows tracked-container and empty-label counts in the overview', () => {
+  test('shows tracked-container and needs-details counts in the overview', () => {
     render(Page, {
       data: buildDashboardData({
         createdContainerId: '',
@@ -87,6 +89,8 @@ describe('dashboard route', () => {
             description: '',
             room_id: '',
             label_id: '',
+            tag_ids: [],
+            tags: [],
             images: []
           },
           {
@@ -96,6 +100,8 @@ describe('dashboard route', () => {
             description: 'Camping gear',
             room_id: 'room-1',
             label_id: 'label-1',
+            tag_ids: ['label-1'],
+            tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
             images: []
           }
         ]
@@ -103,7 +109,7 @@ describe('dashboard route', () => {
     });
 
     expect(screen.getByText('Containers tracked')).toBeInTheDocument();
-    expect(screen.getByText('Empty labels')).toBeInTheDocument();
+    expect(screen.getByText('Needs details')).toBeInTheDocument();
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
   });
@@ -160,6 +166,8 @@ describe('dashboard route', () => {
             description: '',
             room_id: '',
             label_id: '',
+            tag_ids: [],
+            tags: [],
             images: []
           }
         ]
@@ -185,6 +193,8 @@ describe('dashboard route', () => {
             description: 'Camping gear',
             room_id: 'room-1',
             label_id: 'label-1',
+            tag_ids: ['label-1'],
+            tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
             images: []
           }
         ]
@@ -215,6 +225,8 @@ describe('dashboard route', () => {
             description: 'Camping gear',
             room_id: 'room-1',
             label_id: 'label-1',
+            tag_ids: ['label-1'],
+            tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
             images: []
           }
         ]
@@ -229,7 +241,7 @@ describe('dashboard route', () => {
     expect(mocks.goto).not.toHaveBeenCalled();
   });
 
-  test('shows documented containers before empty labels', () => {
+  test('shows documented containers before needs-details containers', () => {
     render(
       Page,
       {
@@ -243,6 +255,8 @@ describe('dashboard route', () => {
               description: '',
               room_id: '',
               label_id: '',
+              tag_ids: [],
+              tags: [],
               images: []
             },
             {
@@ -252,6 +266,8 @@ describe('dashboard route', () => {
               description: 'Camping gear',
               room_id: 'room-1',
               label_id: 'label-1',
+              tag_ids: ['label-1'],
+              tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
               images: []
             }
           ]
@@ -259,9 +275,9 @@ describe('dashboard route', () => {
       }
     );
 
-    const sectionLabels = screen.getAllByText(/Documented|Empty Labels/).map((node) => node.textContent);
+    const sectionLabels = screen.getAllByText(/Documented|Needs Details/).map((node) => node.textContent);
     expect(sectionLabels.indexOf('Documented')).toBeLessThan(
-      sectionLabels.indexOf('Empty Labels')
+      sectionLabels.indexOf('Needs Details')
     );
   });
 });

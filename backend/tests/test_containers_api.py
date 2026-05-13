@@ -444,7 +444,7 @@ def test_container_crud_endpoints_cover_happy_path_and_fk_validation() -> None:
         )
     except HTTPException as exc:
         assert exc.status_code == 404
-        assert exc.detail == "Label not found."
+        assert exc.detail == "Tag not found."
     else:
         raise AssertionError("Expected missing label validation to raise HTTPException")
 
