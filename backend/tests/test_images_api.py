@@ -83,8 +83,8 @@ def _build_room(*, name: str) -> Room:
     return Room(id=uuid.uuid4(), name=name, created_at=datetime.now(timezone.utc))
 
 
-def _build_label(*, name: str, colour: str) -> Label:
-    return Label(id=uuid.uuid4(), name=name, colour=colour, created_at=datetime.now(timezone.utc))
+def _build_label(*, name: str, colour: str | None = None) -> Label:
+    return Label(id=uuid.uuid4(), name=name, created_at=datetime.now(timezone.utc))
 
 
 def _build_container(*, code: str, room_id: uuid.UUID, label_id: uuid.UUID) -> Container:

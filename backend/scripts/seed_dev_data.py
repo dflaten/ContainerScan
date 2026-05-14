@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from sqlalchemy import select
 
 from database import SessionLocal
-from models import Container, Label, Room
+from models import Color, Container, Label, Room
 
 
 @dataclass(frozen=True)
@@ -23,9 +23,16 @@ ROOM_NAMES = [
 ]
 
 LABELS = [
-    ("Holiday", "#C65D2E"),
-    ("Archive", "#4A7560"),
-    ("Electronics", "#496685"),
+    "Holiday",
+    "Archive",
+    "Electronics",
+]
+
+COLORS = [
+    ("Blue", "#3B82F6"),
+    ("Yellow", "#FACC15"),
+    ("Red", "#EF4444"),
+    ("Green", "#22C55E"),
 ]
 
 CONTAINERS = [
@@ -71,18 +78,29 @@ def get_or_create_room(session, name: str) -> tuple[Room, bool]:
     return room, True
 
 
-def get_or_create_label(session, name: str, colour: str) -> tuple[Label, bool]:
+def get_or_create_label(session, name: str) -> tuple[Label, bool]:
     label = session.execute(select(Label).where(Label.name == name)).scalar_one_or_none()
     if label is not None:
-        if label.colour != colour:
-            label.colour = colour
-        session.flush()
         return label, False
 
-    label = Label(name=name, colour=colour)
+    label = Label(name=name)
     session.add(label)
     session.flush()
     return label, True
+
+
+def get_or_create_color(session, name: str, value: str) -> tuple[Color, bool]:
+    color = session.execute(select(Color).where(Color.name == name)).scalar_one_or_none()
+    if color is not None:
+        if color.value != value:
+            color.value = value
+            session.flush()
+        return color, False
+
+    color = Color(name=name, value=value)
+    session.add(color)
+    session.flush()
+    return color, True
 
 
 def get_or_create_container(
@@ -114,6 +132,7 @@ def get_or_create_container(
 def main() -> int:
     created_rooms = 0
     created_labels = 0
+    created_colors = 0
     created_containers = 0
 
     with SessionLocal() as session:
@@ -125,8 +144,12 @@ def main() -> int:
             room_by_name[room_name] = room
             created_rooms += int(created)
 
-        for label_name, colour in LABELS:
-            label, created = get_or_create_label(session, label_name, colour)
+        for color_name, color_value in COLORS:
+            _, created = get_or_create_color(session, color_name, color_value)
+            created_colors += int(created)
+
+        for label_name in LABELS:
+            label, created = get_or_create_label(session, label_name)
             label_by_name[label_name] = label
             created_labels += int(created)
 
@@ -145,6 +168,7 @@ def main() -> int:
 
     print("Seed complete.")
     print(f"Rooms created: {created_rooms}")
+    print(f"Colors created: {created_colors}")
     print(f"Labels created: {created_labels}")
     print(f"Containers created: {created_containers}")
     print(f"Total sample containers ensured: {len(CONTAINERS)}")

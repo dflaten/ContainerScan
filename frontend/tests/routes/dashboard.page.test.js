@@ -77,7 +77,7 @@ describe('dashboard route', () => {
     ).toBeInTheDocument();
   });
 
-  test('shows tracked-container and empty-label counts in the overview', () => {
+  test('shows containers-filled and empty-label counts in the overview', () => {
     render(Page, {
       data: buildDashboardData({
         createdContainerId: '',
@@ -94,6 +94,17 @@ describe('dashboard route', () => {
             images: []
           },
           {
+            id: 'container-described-only',
+            code: 'BB-22',
+            name: 'Hall Closet',
+            description: 'Linens',
+            room_id: 'room-1',
+            label_id: 'label-2',
+            tag_ids: ['label-1'],
+            tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
+            images: []
+          },
+          {
             id: 'container-full',
             code: 'AA-11',
             name: 'Garage Box 3',
@@ -102,16 +113,22 @@ describe('dashboard route', () => {
             label_id: 'label-1',
             tag_ids: ['label-1'],
             tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
-            images: []
+            images: [
+              {
+                id: 'image-1',
+                url: 'https://example.com/image-1.jpg',
+                caption: 'Camping gear',
+                is_primary: true
+              }
+            ]
           }
         ]
       })
     });
 
-    expect(screen.getByText('Containers tracked')).toBeInTheDocument();
+    expect(screen.getByText('Containers Filled')).toBeInTheDocument();
     expect(screen.getAllByText('Empty Labels').length).toBeGreaterThan(0);
-    expect(screen.getByText('2')).toBeInTheDocument();
-    expect(screen.getByText('1')).toBeInTheDocument();
+    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(2);
   });
 
   test('shows empty labels in a separate section and removes the documented subheading', () => {
@@ -188,93 +205,6 @@ describe('dashboard route', () => {
       'href',
       '/advanced-search'
     );
-  });
-
-  test('opens an existing empty label from the dashboard', async () => {
-    render(Page, {
-      data: buildDashboardData({
-        createdContainerId: '',
-        containers: [
-          {
-            id: 'container-empty',
-            code: 'ZZ-99',
-            name: 'Container ZZ-99',
-            description: '',
-            room_id: '',
-            label_id: '',
-            tag_ids: [],
-            tags: [],
-            images: []
-          }
-        ]
-      })
-    });
-
-    await fireEvent.click(screen.getByRole('button', { name: /get empty label/i }));
-
-    await waitFor(() => {
-      expect(mocks.goto).toHaveBeenCalledWith('/containers/container-empty');
-    });
-  });
-
-  test('redirects to print labels when no empty labels are available', async () => {
-    render(Page, {
-      data: buildDashboardData({
-        createdContainerId: '',
-        containers: [
-          {
-            id: 'container-full',
-            code: 'AA-11',
-            name: 'Garage Box 3',
-            description: 'Camping gear',
-            room_id: 'room-1',
-            label_id: 'label-1',
-            tag_ids: ['label-1'],
-            tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
-            images: []
-          }
-        ]
-      })
-    });
-
-    await fireEvent.click(screen.getByRole('button', { name: /get empty label/i }));
-
-    await waitFor(() => {
-      expect(window.confirm).toHaveBeenCalledWith(
-        'No empty labels are currently available. Print a new sheet of labels before continuing?'
-      );
-      expect(mocks.goto).toHaveBeenCalledWith('/print?missingEmptyLabels=1');
-    });
-  });
-
-  test('does not redirect to print labels when the confirmation is canceled', async () => {
-    window.confirm.mockReturnValue(false);
-
-    render(Page, {
-      data: buildDashboardData({
-        createdContainerId: '',
-        containers: [
-          {
-            id: 'container-full',
-            code: 'AA-11',
-            name: 'Garage Box 3',
-            description: 'Camping gear',
-            room_id: 'room-1',
-            label_id: 'label-1',
-            tag_ids: ['label-1'],
-            tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
-            images: []
-          }
-        ]
-      })
-    });
-
-    await fireEvent.click(screen.getByRole('button', { name: /get empty label/i }));
-
-    await waitFor(() => {
-      expect(window.confirm).toHaveBeenCalled();
-    });
-    expect(mocks.goto).not.toHaveBeenCalled();
   });
 
   test('shows the inventory section before the empty-label section', () => {

@@ -6,7 +6,7 @@
   let lightboxImage = null;
 
   function labelColour() {
-    return data.container?.tags?.[0]?.colour ?? data.container?.label?.colour ?? '#4A7560';
+    return data.container?.colour ?? '#4A7560';
   }
 
   function goToPreviousImage() {

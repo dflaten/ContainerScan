@@ -34,17 +34,31 @@ class Room(Base):
     containers: Mapped[list["Container"]] = relationship(back_populates="room")
 
 
-class Label(Base):
-    """Database model for a user-defined colour label."""
+class Color(Base):
+    """Database model for a user-defined container color option."""
 
-    __tablename__ = "labels"
+    __tablename__ = "colors"
     __table_args__ = (
-        CheckConstraint(r"colour ~ '^#[0-9A-Fa-f]{6}$'", name="ck_labels_colour_hex"),
+        CheckConstraint(r"value ~ '^#[0-9A-Fa-f]{6}$'", name="ck_colors_value_hex"),
     )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
-    colour: Mapped[str] = mapped_column(String(7), nullable=False)
+    value: Mapped[str] = mapped_column(String(7), unique=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+    )
+
+
+class Label(Base):
+    """Database model for a user-defined tag."""
+
+    __tablename__ = "labels"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

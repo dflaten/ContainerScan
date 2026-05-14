@@ -236,20 +236,17 @@ def _build_room(*, name: str) -> Room:
     return Room(id=uuid.uuid4(), name=name, created_at=datetime.now(timezone.utc))
 
 
-def _build_label(*, name: str, colour: str) -> Label:
+def _build_label(*, name: str, colour: str | None = None) -> Label:
     """Build a label fixture object for unit tests.
 
     Args:
         name: Label name to assign.
-        colour: Hex colour value to assign.
-
     Returns:
         Label: Unsaved label instance.
     """
     return Label(
         id=uuid.uuid4(),
         name=name,
-        colour=colour,
         created_at=datetime.now(timezone.utc),
     )
 

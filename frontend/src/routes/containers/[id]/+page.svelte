@@ -5,12 +5,6 @@
   export let data;
 
   const api = createApi(fetch);
-  const containerColourOptions = [
-    { value: '#3B82F6', label: 'Blue' },
-    { value: '#FACC15', label: 'Yellow' },
-    { value: '#EF4444', label: 'Red' },
-    { value: '#22C55E', label: 'Green' }
-  ];
   const steps = [
     {
       eyebrow: 'Step 1',
@@ -153,6 +147,17 @@
       isDeletingContainer = false;
     }
   }
+
+  function containerColorOptions() {
+    const configuredColors = Array.isArray(data.colors) ? data.colors : [];
+    const options = configuredColors.map((color) => ({ value: color.value, label: color.name }));
+
+    if (form.colour && !options.some((option) => option.value === form.colour)) {
+      options.unshift({ value: form.colour, label: form.colour });
+    }
+
+    return options;
+  }
 </script>
 
 <svelte:head>
@@ -261,10 +266,7 @@
                         checked={form.tag_ids.includes(tag.id)}
                         on:change={() => toggleTag(tag.id)}
                       />
-                      <span class="container-label-chip">
-                        <span class="label-swatch" style={`background: ${tag.colour};`}></span>
-                        {tag.name}
-                      </span>
+                      <span class="container-label-chip">{tag.name}</span>
                     </label>
                   {/each}
                 </div>
@@ -274,7 +276,7 @@
             <label class="field">
               <span>Color</span>
               <select bind:value={form.colour} name="container_colour">
-                {#each containerColourOptions as option}
+                {#each containerColorOptions() as option}
                   <option value={option.value}>{option.label}</option>
                 {/each}
               </select>

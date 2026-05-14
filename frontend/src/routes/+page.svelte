@@ -11,8 +11,6 @@
     search: data.filters.search
   };
   let searchTimer;
-  let createError = null;
-  let isCreatingEmptyLabel = false;
 
   function primaryImageFor(container) {
     return container.images.find((image) => image.is_primary) ?? container.images[0] ?? null;
@@ -38,33 +36,6 @@
 
   function createdContainer() {
     return data.containers.find((container) => container.id === data.createdContainerId) ?? null;
-  }
-
-  async function handleCreateEmptyLabel() {
-    createError = null;
-    isCreatingEmptyLabel = true;
-
-    try {
-      const emptyLabel = pendingContainers[0] ?? null;
-
-      if (emptyLabel) {
-        await goto(`/containers/${emptyLabel.id}`);
-      } else {
-        const shouldRedirectToPrint = window.confirm(
-          'No empty labels are currently available. Print a new sheet of labels before continuing?'
-        );
-
-        if (!shouldRedirectToPrint) {
-          return;
-        }
-
-        await goto('/print?missingEmptyLabels=1');
-      }
-    } catch (error) {
-      createError = error.detail ?? error.message ?? 'Unable to open an empty label.';
-    } finally {
-      isCreatingEmptyLabel = false;
-    }
   }
 
   function buildDashboardQuery(nextFilters) {
@@ -111,6 +82,9 @@
 
   $: pendingContainers = data.containers.filter(isPendingContainer);
   $: documentedContainers = data.containers.filter((container) => !isPendingContainer(container));
+  $: containersFilled = data.containers.filter(
+    (container) => Boolean(container.description?.trim()) && container.images.length > 0
+  ).length;
 </script>
 
 <svelte:head>
@@ -121,21 +95,12 @@
   <article class="panel panel-full dashboard-overview">
     <div class="panel-heading dashboard-overview-heading">
       <span class="eyebrow">Inventory Snapshot</span>
-
-      <button
-        class="dashboard-overview-action"
-        type="button"
-        on:click={handleCreateEmptyLabel}
-        disabled={isCreatingEmptyLabel}
-      >
-        {isCreatingEmptyLabel ? 'Opening Empty Label…' : 'Get Empty Label'}
-      </button>
     </div>
 
     <div class="dashboard-stats">
       <article class="dashboard-stat">
-        <span class="dashboard-stat-label">Containers tracked</span>
-        <strong>{data.containers.length}</strong>
+        <span class="dashboard-stat-label">Containers Filled</span>
+        <strong>{containersFilled}</strong>
       </article>
 
       <article class="dashboard-stat">
@@ -144,12 +109,6 @@
       </article>
     </div>
 
-    {#if createError}
-      <div class="diagnostics">
-        <h3>Could not open empty label</h3>
-        <p>{createError}</p>
-      </div>
-    {/if}
   </article>
 
   <article class="panel">
@@ -233,10 +192,7 @@
                     <div class="card-topline">
                       <span class="container-code">{container.code}</span>
                       {#each tags as tag}
-                        <span class="container-label-chip">
-                          <span class="label-swatch" style={`background: ${tag.colour};`}></span>
-                          {tag.name}
-                        </span>
+                        <span class="container-label-chip">{tag.name}</span>
                       {/each}
                     </div>
 
