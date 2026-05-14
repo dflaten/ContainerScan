@@ -8,8 +8,7 @@ const mocks = vi.hoisted(() => ({
     deleteContainer: vi.fn(),
     uploadContainerImages: vi.fn(),
     updateImage: vi.fn(),
-    deleteImage: vi.fn(),
-    getQrDownloadPath: vi.fn((containerId) => `/api/containers/${containerId}/qr`)
+    deleteImage: vi.fn()
   },
   goto: vi.fn()
 }));
@@ -53,7 +52,6 @@ function buildData(overrides = {}) {
   return {
     container: buildContainer(),
     containerError: null,
-    createdNotice: false,
     rooms: [{ id: 'room-1', name: 'Garage' }],
     tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
     ...overrides
@@ -70,16 +68,6 @@ describe('container detail route', () => {
     mocks.api.deleteImage.mockReset();
     mocks.goto.mockReset();
     vi.restoreAllMocks();
-  });
-
-  test('shows the label-ready notice after creating a shell container', () => {
-    render(Page, {
-      data: buildData({
-        createdNotice: true
-      })
-    });
-
-    expect(screen.getByText(/label ready\. download it now/i)).toBeInTheDocument();
   });
 
   test('shows a floating dashboard shortcut on the container page', () => {
@@ -101,7 +89,7 @@ describe('container detail route', () => {
     await fireEvent.input(screen.getByLabelText('Name'), {
       target: { value: 'Updated Garage Box 3' }
     });
-    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
 
     await waitFor(() => {
       expect(mocks.api.updateContainer).toHaveBeenCalledWith('container-1', {
@@ -136,13 +124,13 @@ describe('container detail route', () => {
 
     render(Page, { data: buildData() });
 
-    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
     await screen.findByLabelText('Room');
 
     await fireEvent.change(screen.getByLabelText('Room'), {
       target: { value: 'room-1' }
     });
-    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
 
     await waitFor(() => {
       expect(mocks.api.updateContainer).toHaveBeenLastCalledWith('container-1', {
@@ -164,9 +152,9 @@ describe('container detail route', () => {
 
     render(Page, { data: buildData({ container: buildContainer({ images: [] }) }) });
 
-    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
     await screen.findByLabelText('Room');
-    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
     await screen.findByText('1 already saved');
 
     const uploadInput = document.querySelector('.upload-picker input');
@@ -212,11 +200,19 @@ describe('container detail route', () => {
 
     render(Page, { data: buildData() });
 
-    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
     await screen.findByLabelText('Room');
-    await fireEvent.click(screen.getByRole('button', { name: /save and next/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
 
     expect(screen.getByText(/2 already saved/i)).toBeInTheDocument();
     expect(screen.getByAltText('Inside bin')).toBeInTheDocument();
+  });
+
+  test('allows navigating steps from the bottom stepper', async () => {
+    render(Page, { data: buildData() });
+
+    await fireEvent.click(screen.getByRole('button', { name: /go to room\/tags\/color/i }));
+
+    expect(screen.getByLabelText('Room')).toBeInTheDocument();
   });
 });

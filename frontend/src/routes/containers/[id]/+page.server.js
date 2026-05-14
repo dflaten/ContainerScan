@@ -11,7 +11,6 @@ export async function load({ fetch, params, parent, url }) {
     containerError: containerResult.ok
       ? null
       : containerResult.error.detail ?? containerResult.error.message,
-    createdNotice: url.searchParams.get('created') === '1',
     tags: parentData.tags,
     rooms: parentData.rooms
   };
