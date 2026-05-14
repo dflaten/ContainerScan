@@ -3,6 +3,7 @@ export async function load({ parent }) {
 
   return {
     rooms: parentData.rooms,
-    tags: parentData.tags
+    tags: parentData.tags,
+    colors: parentData.colors
   };
 }

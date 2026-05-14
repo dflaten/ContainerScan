@@ -129,6 +129,10 @@ li {
   justify-self: end;
 }
 
+.api-status-wrap {
+  position: relative;
+}
+
 .site-header-main {
   min-width: 0;
 }
@@ -159,23 +163,24 @@ li {
 
 .panel,
 .hero-panel,
-.status-card,
-.api-indicator {
+.status-card {
   border: 1px solid var(--cs-panel-border);
   background: var(--cs-panel-bg);
   box-shadow: var(--cs-shadow);
 }
 
 .api-indicator {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
+  display: inline-grid;
+  place-items: center;
+  width: 2.6rem;
   min-height: 2.6rem;
-  padding: 0.55rem 0.9rem;
+  padding: 0;
+  border: 1px solid var(--cs-panel-border);
   border-radius: 999px;
+  background: var(--cs-panel-bg);
+  box-shadow: var(--cs-shadow);
   color: var(--color-success-800);
-  font-size: 0.88rem;
-  font-weight: 700;
+  cursor: pointer;
 }
 
 .api-indicator-offline {
@@ -190,8 +195,30 @@ li {
   box-shadow: 0 0 0 0.18rem color-mix(in srgb, currentColor 18%, transparent);
 }
 
+.api-status-popup {
+  position: absolute;
+  top: calc(100% + 0.45rem);
+  right: 0;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--cs-panel-border);
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, white 94%, var(--color-primary-50) 6%);
+  box-shadow: var(--cs-shadow);
+  color: var(--heading-font-color);
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  z-index: 12;
+}
+
+.site-header-empty-label-action {
+  min-height: 2.6rem;
+  padding: 0.65rem 1.1rem;
+}
+
 .site-menu {
   position: relative;
+  z-index: 12;
 }
 
 .site-menu summary {
@@ -236,6 +263,15 @@ li {
   background: color-mix(in srgb, white 92%, var(--color-primary-50) 8%);
   box-shadow: var(--cs-shadow);
   z-index: 10;
+}
+
+.site-menu-backdrop {
+  position: fixed;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  z-index: 11;
 }
 
 .site-menu-link {
@@ -394,17 +430,6 @@ li {
 .diagnostics ul {
   margin: 0.85rem 0 0;
   padding-left: 1rem;
-}
-
-.label-list {
-  list-style: none;
-  padding: 0;
-}
-
-.label-list li {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
 }
 
 .label-swatch {
@@ -630,7 +655,7 @@ li {
 }
 
 .dashboard-overview-heading {
-  align-items: center;
+  gap: 0.75rem;
 }
 
 .dashboard-stat strong {
@@ -638,7 +663,7 @@ li {
 }
 
 .dashboard-overview-action {
-  justify-self: start;
+  justify-self: end;
   min-height: 3.2rem;
   padding: 0.95rem 1.4rem;
   border: 1px solid color-mix(in srgb, var(--color-secondary-700) 54%, white 46%);
@@ -708,24 +733,14 @@ li {
   gap: 1rem;
 }
 
-.resource-section {
-  padding: 1.15rem 1.2rem;
-  border: 1px solid color-mix(in srgb, var(--color-secondary-300) 24%, white 76%);
-  border-radius: 24px;
-  background: color-mix(in srgb, white 88%, var(--color-secondary-50) 12%);
+.rooms-page-grid .panel {
+  display: grid;
+  gap: 1rem;
 }
 
-.resource-section-secondary {
-  margin-top: 1.35rem;
-  background: color-mix(in srgb, white 92%, var(--color-primary-50) 8%);
-}
-
-.resource-section-heading {
-  margin-bottom: 1.15rem;
-}
-
-.room-list-heading {
-  margin-top: 2rem;
+.resource-list-divider {
+  height: 1px;
+  background: color-mix(in srgb, var(--color-secondary-300) 28%, white 72%);
 }
 
 .room-list-item {
@@ -737,41 +752,26 @@ li {
   background: color-mix(in srgb, white 84%, var(--color-secondary-50) 16%);
 }
 
-.room-list-copy strong {
-  font-family: var(--heading-font-family);
-  color: var(--heading-font-color);
-  font-size: 1.08rem;
-}
-
-.room-list-copy-labelled {
-  align-items: center;
-}
-
-.tag-colour-options {
-  display: grid;
-  gap: 0.75rem;
-}
-
-.tag-colour-option {
+.color-picker-row {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.85rem 0.95rem;
+}
+
+.color-picker-row input[type='color'] {
+  width: 3.25rem;
+  height: 3rem;
+  padding: 0.2rem;
   border: 1px solid color-mix(in srgb, var(--color-secondary-300) 28%, white 72%);
-  border-radius: 18px;
+  border-radius: 0.9rem;
   background: color-mix(in srgb, white 90%, var(--color-secondary-50) 10%);
   cursor: pointer;
 }
 
-.tag-colour-option input {
-  margin: 0;
-  accent-color: var(--color-secondary-600);
-}
-
-.tag-colour-option-selected {
-  border-color: color-mix(in srgb, var(--color-secondary-600) 42%, white 58%);
-  background: color-mix(in srgb, white 82%, var(--color-primary-50) 18%);
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-secondary-400) 22%, transparent);
+.room-list-copy strong {
+  font-family: var(--heading-font-family);
+  color: var(--heading-font-color);
+  font-size: 1.08rem;
 }
 
 .room-remove-button {
@@ -1714,14 +1714,6 @@ li {
 
   .content-grid {
     grid-template-columns: 1.2fr 0.8fr;
-  }
-
-  .dashboard-overview-heading {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .dashboard-overview-action {
-    justify-self: end;
   }
 
   .dashboard-grid {

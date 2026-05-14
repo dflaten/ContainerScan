@@ -11,6 +11,7 @@ export async function load({ fetch, params, parent, url }) {
     containerError: containerResult.ok
       ? null
       : containerResult.error.detail ?? containerResult.error.message,
+    colors: parentData.colors,
     tags: parentData.tags,
     rooms: parentData.rooms
   };

@@ -55,8 +55,8 @@ def _build_room(*, name: str) -> Room:
     return Room(id=uuid.uuid4(), name=name, created_at=datetime.now(timezone.utc))
 
 
-def _build_label(*, name: str, colour: str) -> Label:
-    return Label(id=uuid.uuid4(), name=name, colour=colour, created_at=datetime.now(timezone.utc))
+def _build_label(*, name: str, colour: str | None = None) -> Label:
+    return Label(id=uuid.uuid4(), name=name, created_at=datetime.now(timezone.utc))
 
 
 def _build_image(*, container_id: uuid.UUID, sort_order: int, caption: str | None = None) -> Image:
@@ -116,7 +116,7 @@ def test_get_scan_container_returns_read_only_container_data() -> None:
 
     assert result.id == container.id
     assert result.room.name == "Garage"
-    assert result.label.colour == "#AABBCC"
+    assert result.label.name == "Tools"
     assert result.colour == "#3B82F6"
     assert result.images[0].url == f"/images/{image.filename}"
 

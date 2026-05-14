@@ -5,14 +5,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-ALLOWED_TAG_COLOURS = {
-    "#3B82F6",  # Blue
-    "#FACC15",  # Yellow
-    "#EF4444",  # Red
-    "#22C55E",  # Green
-}
-
-
 class APIModel(BaseModel):
     """Base Pydantic model configured for ORM object serialization."""
 
@@ -64,15 +56,53 @@ class RoomRead(APIModel):
     created_at: datetime
 
 
-class LabelBase(NamedResourceBase):
-    """Shared schema fields and validation for labels."""
+class ColorBase(NamedResourceBase):
+    """Shared schema fields and validation for color options."""
 
-    colour: str
+    value: str
 
-    @field_validator("colour")
+    @field_validator("value")
+    @classmethod
+    def validate_value(cls, value: str) -> str:
+        """Normalize and validate a hex color option value."""
+        normalized = value.strip().upper()
+        if len(normalized) != 7 or normalized[0] != "#":
+            raise ValueError("Color must be a hex value like #FF5733.")
+
+        hex_digits = normalized[1:]
+        if any(char not in "0123456789ABCDEF" for char in hex_digits):
+            raise ValueError("Color must be a hex value like #FF5733.")
+
+        return normalized
+
+
+class ColorCreate(ColorBase):
+    """Request schema for creating a color option."""
+
+    pass
+
+
+class ColorUpdate(ColorBase):
+    """Request schema for updating a color option."""
+
+    pass
+
+
+class ColorRead(APIModel):
+    """Response schema for color option data."""
+
+    id: uuid.UUID
+    name: str
+    value: str
+    created_at: datetime
+
+
+class ContainerColourMixin(BaseModel):
+    """Shared validation for the single container colour field."""
+
     @classmethod
     def validate_colour(cls, value: str) -> str:
-        """Normalize and validate a label colour value.
+        """Normalize and validate a container colour value.
 
         Args:
             value: Raw colour value from the request payload.
@@ -91,40 +121,33 @@ class LabelBase(NamedResourceBase):
         if any(char not in "0123456789ABCDEF" for char in hex_digits):
             raise ValueError("Colour must be a hex value like #FF5733.")
 
-        if normalized not in ALLOWED_TAG_COLOURS:
-            raise ValueError("Colour must be one of: Blue, Yellow, Red, or Green.")
-
         return normalized
 
 
-class LabelCreate(LabelBase):
-    """Request schema for creating a label."""
+class TagCreate(NamedResourceBase):
+    """Request schema for creating a tag."""
 
     pass
 
 
-class LabelUpdate(LabelBase):
-    """Request schema for updating a label."""
+class TagUpdate(NamedResourceBase):
+    """Request schema for updating a tag."""
 
     pass
 
 
-class LabelRead(APIModel):
-    """Response schema for label data."""
+class TagRead(APIModel):
+    """Response schema for tag data."""
 
     id: uuid.UUID
     name: str
-    colour: str
     created_at: datetime
 
 
-TagBase = LabelBase
-TagCreate = LabelCreate
-TagUpdate = LabelUpdate
-TagRead = LabelRead
+TagBase = NamedResourceBase
 
 
-class ContainerCreate(BaseModel):
+class ContainerCreate(ContainerColourMixin):
     """Request schema for creating a container shell before documentation is complete."""
 
     name: str | None = None
@@ -167,7 +190,7 @@ class ContainerCreate(BaseModel):
     @classmethod
     def normalize_container_colour(cls, value: str) -> str:
         """Normalize and validate the single container colour choice."""
-        return LabelBase.validate_colour(value)
+        return ContainerColourMixin.validate_colour(value)
 
     @field_validator("tag_ids")
     @classmethod
@@ -183,7 +206,7 @@ class ContainerCreate(BaseModel):
         return self
 
 
-class ContainerUpdate(BaseModel):
+class ContainerUpdate(ContainerColourMixin):
     """Request schema for updating mutable container metadata."""
 
     name: str
@@ -212,7 +235,7 @@ class ContainerUpdate(BaseModel):
     @classmethod
     def normalize_update_container_colour(cls, value: str) -> str:
         """Normalize and validate the single container colour choice."""
-        return LabelBase.validate_colour(value)
+        return ContainerColourMixin.validate_colour(value)
 
     @field_validator("tag_ids")
     @classmethod
@@ -352,10 +375,6 @@ class ScanTagRead(APIModel):
 
     id: uuid.UUID
     name: str
-    colour: str
-
-
-ScanLabelRead = ScanTagRead
 
 
 class ScanContainerRead(APIModel):

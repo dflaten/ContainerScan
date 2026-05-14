@@ -107,6 +107,9 @@ export function createApi(fetchFn, config = {}) {
     listRooms() {
       return requestJson(fetchFn, '/rooms', createRequestOptions());
     },
+    listColors() {
+      return requestJson(fetchFn, '/colors', createRequestOptions());
+    },
     createRoom(payload) {
       return requestJson(fetchFn, '/rooms', createRequestOptions({
         method: 'POST',
@@ -121,11 +124,25 @@ export function createApi(fetchFn, config = {}) {
         method: 'DELETE'
       }));
     },
+    createColor(payload) {
+      return requestJson(fetchFn, '/colors', createRequestOptions({
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      }));
+    },
+    deleteColor(colorId) {
+      return requestJson(fetchFn, `/colors/${colorId}`, createRequestOptions({
+        method: 'DELETE'
+      }));
+    },
     listTags() {
-      return requestJson(fetchFn, '/labels', createRequestOptions());
+      return requestJson(fetchFn, '/tags', createRequestOptions());
     },
     createTag(payload) {
-      return requestJson(fetchFn, '/labels', createRequestOptions({
+      return requestJson(fetchFn, '/tags', createRequestOptions({
         method: 'POST',
         headers: {
           'content-type': 'application/json'
@@ -134,7 +151,7 @@ export function createApi(fetchFn, config = {}) {
       }));
     },
     deleteTag(tagId) {
-      return requestJson(fetchFn, `/labels/${tagId}`, createRequestOptions({
+      return requestJson(fetchFn, `/tags/${tagId}`, createRequestOptions({
         method: 'DELETE'
       }));
     },

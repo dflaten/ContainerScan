@@ -234,10 +234,7 @@
                     <div class="card-topline">
                       <span class="container-code">{container.code}</span>
                       {#each tags as tag}
-                        <span class="container-label-chip">
-                          <span class="label-swatch" style={`background: ${tag.colour};`}></span>
-                          {tag.name}
-                        </span>
+                        <span class="container-label-chip">{tag.name}</span>
                       {/each}
                     </div>
 

@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from config import get_settings
+from routers.colors import router as colors_router
 from routers.containers import router as containers_router
 from routers.images import router as images_router
 from routers.labels import router as labels_router
@@ -32,6 +33,7 @@ def healthcheck() -> dict[str, str]:
 
 
 app.include_router(rooms_router)
+app.include_router(colors_router)
 app.include_router(labels_router)
 app.include_router(containers_router)
 app.include_router(images_router)

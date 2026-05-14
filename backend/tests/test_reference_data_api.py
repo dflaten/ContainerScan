@@ -13,9 +13,9 @@ from sqlalchemy.exc import IntegrityError
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from models import Label, Room
-from routers.labels import create_label, delete_label, list_labels, update_label
+from routers.labels import create_tag, delete_tag, list_tags, update_tag
 from routers.rooms import create_room, delete_room, list_rooms, update_room
-from schemas import LabelCreate, LabelUpdate, RoomCreate, RoomUpdate
+from schemas import RoomCreate, RoomUpdate, TagCreate, TagUpdate
 
 
 @dataclass
@@ -200,20 +200,17 @@ def _build_room(*, name: str) -> Room:
     return Room(id=uuid.uuid4(), name=name, created_at=datetime.now(timezone.utc))
 
 
-def _build_label(*, name: str, colour: str) -> Label:
+def _build_label(*, name: str, colour: str | None = None) -> Label:
     """Build a label fixture object for unit tests.
 
     Args:
         name: Label name to assign.
-        colour: Hex colour value to assign.
-
     Returns:
         Label: Unsaved label instance.
     """
     return Label(
         id=uuid.uuid4(),
         name=name,
-        colour=colour,
         created_at=datetime.now(timezone.utc),
     )
 
@@ -264,8 +261,8 @@ def test_room_crud_endpoints_cover_happy_path_and_conflicts() -> None:
     assert existing_room.id not in session.rooms
 
 
-def test_label_crud_endpoints_cover_happy_path_and_conflicts() -> None:
-    """Verify label CRUD behavior, validation, and conflict handling."""
+def test_tag_crud_endpoints_cover_happy_path_and_conflicts() -> None:
+    """Verify tag CRUD behavior, validation, and conflict handling."""
     existing_label = _build_label(name="Seasonal", colour="#3B82F6")
     protected_label = _build_label(name="Tools", colour="#22C55E")
     session = FakeSession(
@@ -273,51 +270,49 @@ def test_label_crud_endpoints_cover_happy_path_and_conflicts() -> None:
         protected_label_ids={protected_label.id},
     )
 
-    labels = list_labels(session)
-    assert [item.name for item in labels] == ["Seasonal", "Tools"]
+    tags = list_tags(session)
+    assert [item.name for item in tags] == ["Seasonal", "Tools"]
 
-    created_label = create_label(LabelCreate(name=" Fragile ", colour=" #ef4444 "), session)
-    assert created_label.name == "Fragile"
-    assert created_label.colour == "#EF4444"
+    created_tag = create_tag(TagCreate(name=" Fragile "), session)
+    assert created_tag.name == "Fragile"
 
     try:
-        create_label(LabelCreate(name="Seasonal", colour="#FACC15"), session)
+        create_tag(TagCreate(name="Seasonal"), session)
     except HTTPException as exc:
         assert exc.status_code == 409
-        assert exc.detail == "Label name already exists."
+        assert exc.detail == "Tag name already exists."
     else:
-        raise AssertionError("Expected duplicate label name to raise HTTPException")
+        raise AssertionError("Expected duplicate tag name to raise HTTPException")
 
-    updated_label = update_label(
+    updated_tag = update_tag(
         existing_label.id,
-        LabelUpdate(name="Holiday", colour="#22C55E"),
+        TagUpdate(name="Holiday"),
         session,
     )
-    assert updated_label.name == "Holiday"
-    assert updated_label.colour == "#22C55E"
+    assert updated_tag.name == "Holiday"
 
     try:
-        LabelCreate(name="Bad", colour="green")
+        TagCreate(name="   ")
     except ValidationError:
         pass
     else:
-        raise AssertionError("Expected invalid colour validation to fail")
+        raise AssertionError("Expected invalid tag validation to fail")
 
     try:
-        delete_label(uuid.uuid4(), session)
+        delete_tag(uuid.uuid4(), session)
     except HTTPException as exc:
         assert exc.status_code == 404
     else:
-        raise AssertionError("Expected missing label delete to raise HTTPException")
+        raise AssertionError("Expected missing tag delete to raise HTTPException")
 
     try:
-        delete_label(protected_label.id, session)
+        delete_tag(protected_label.id, session)
     except HTTPException as exc:
         assert exc.status_code == 409
-        assert exc.detail == "Label is still in use by one or more containers."
+        assert exc.detail == "Tag is still in use by one or more containers."
     else:
-        raise AssertionError("Expected protected label delete to raise HTTPException")
+        raise AssertionError("Expected protected tag delete to raise HTTPException")
 
-    delete_response = delete_label(existing_label.id, session)
+    delete_response = delete_tag(existing_label.id, session)
     assert delete_response.status_code == 204
     assert existing_label.id not in session.labels

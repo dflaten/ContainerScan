@@ -53,6 +53,7 @@ function buildData(overrides = {}) {
     container: buildContainer(),
     containerError: null,
     rooms: [{ id: 'room-1', name: 'Garage' }],
+    colors: [{ id: 'color-1', name: 'Blue', value: '#3B82F6' }],
     tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
     ...overrides
   };
