@@ -77,7 +77,7 @@ describe('dashboard route', () => {
     ).toBeInTheDocument();
   });
 
-  test('shows tracked-container and needs-details counts in the overview', () => {
+  test('shows tracked-container and empty-label counts in the overview', () => {
     render(Page, {
       data: buildDashboardData({
         createdContainerId: '',
@@ -109,9 +109,45 @@ describe('dashboard route', () => {
     });
 
     expect(screen.getByText('Containers tracked')).toBeInTheDocument();
-    expect(screen.getByText('Needs details')).toBeInTheDocument();
+    expect(screen.getAllByText('Empty Labels').length).toBeGreaterThan(0);
     expect(screen.getByText('2')).toBeInTheDocument();
     expect(screen.getByText('1')).toBeInTheDocument();
+  });
+
+  test('shows empty labels in a separate section and removes the documented subheading', () => {
+    render(Page, {
+      data: buildDashboardData({
+        createdContainerId: '',
+        containers: [
+          {
+            id: 'container-empty',
+            code: 'ZZ-99',
+            name: 'Container ZZ-99',
+            description: '',
+            room_id: '',
+            label_id: '',
+            tag_ids: [],
+            tags: [],
+            images: []
+          },
+          {
+            id: 'container-full',
+            code: 'AA-11',
+            name: 'Garage Box 3',
+            description: 'Camping gear',
+            room_id: 'room-1',
+            label_id: 'label-1',
+            tag_ids: ['label-1'],
+            tags: [{ id: 'label-1', name: 'Tools', colour: '#AABBCC' }],
+            images: []
+          }
+        ]
+      })
+    });
+
+    expect(screen.queryByText('Documented')).not.toBeInTheDocument();
+    expect(screen.getAllByText('Empty Labels')).toHaveLength(2);
+    expect(screen.getByText(/ready for use/i)).toBeInTheDocument();
   });
 
   test('shows a deleted-container notice when returning from the detail page', () => {
@@ -241,7 +277,7 @@ describe('dashboard route', () => {
     expect(mocks.goto).not.toHaveBeenCalled();
   });
 
-  test('shows documented containers before needs-details containers', () => {
+  test('shows the inventory section before the empty-label section', () => {
     render(
       Page,
       {
@@ -275,9 +311,9 @@ describe('dashboard route', () => {
       }
     );
 
-    const sectionLabels = screen.getAllByText(/Documented|Needs Details/).map((node) => node.textContent);
-    expect(sectionLabels.indexOf('Documented')).toBeLessThan(
-      sectionLabels.indexOf('Needs Details')
-    );
+    const sectionLabels = screen
+      .getAllByText(/Inventory|Empty Labels/, { selector: '.eyebrow' })
+      .map((node) => node.textContent);
+    expect(sectionLabels.indexOf('Inventory')).toBeLessThan(sectionLabels.indexOf('Empty Labels'));
   });
 });

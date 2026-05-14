@@ -158,15 +158,6 @@ export function createApi(fetchFn, config = {}) {
         body: JSON.stringify(payload)
       }));
     },
-    createContainer(payload) {
-      return requestJson(fetchFn, '/containers', createRequestOptions({
-        method: 'POST',
-        headers: {
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify(payload)
-      }));
-    },
     getContainer(containerId) {
       return requestJson(fetchFn, `/containers/${containerId}`, createRequestOptions());
     },
@@ -216,9 +207,6 @@ export function createApi(fetchFn, config = {}) {
     },
     getScanContainer(containerId) {
       return requestJson(fetchFn, `/scan/${containerId}`, createRequestOptions());
-    },
-    getQrDownloadPath(containerId) {
-      return buildUrl(`/containers/${containerId}/qr`);
     }
   };
 }

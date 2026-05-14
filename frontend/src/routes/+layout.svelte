@@ -40,10 +40,9 @@
           </summary>
 
           <div class="site-menu-panel">
-            <a class="site-menu-link" href="/containers/new">Generate Label</a>
             <a class="site-menu-link" href="/rooms">Manage Rooms & Tags</a>
             <a class="site-menu-link" href="/advanced-search">Advanced Search</a>
-            <a class="site-menu-link" href="/print">Print Labels</a>
+            <a class="site-menu-link" href="/print">Create/Print Labels</a>
           </div>
         </details>
       </div>

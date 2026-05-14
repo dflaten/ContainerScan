@@ -31,9 +31,7 @@
 
   let container = data.container;
   let pageError = null;
-  let pageNotice = data.createdNotice
-    ? 'Label ready. Download it now, then add the container details whenever you pack it.'
-    : null;
+  let pageNotice = null;
   let activeStep = 0;
   let isSavingStep = false;
   let isDeletingContainer = false;
@@ -230,7 +228,7 @@
 
             <div class="wizard-actions wizard-actions-end">
               <button class="primary-button" type="submit" disabled={isSavingStep}>
-                {isSavingStep ? 'Saving…' : 'Save and Next'}
+                {isSavingStep ? 'Saving…' : 'Next'}
               </button>
             </div>
           </form>
@@ -285,7 +283,7 @@
             <div class="wizard-actions">
               <button type="button" class="secondary-button" on:click={() => (activeStep = 0)}>Back</button>
               <button class="primary-button" type="submit" disabled={isSavingStep}>
-                {isSavingStep ? 'Saving…' : 'Save and Next'}
+                {isSavingStep ? 'Saving…' : 'Next'}
               </button>
             </div>
           </form>
@@ -346,17 +344,23 @@
 
       <div class="bottom-stepper" aria-label="Edit container steps">
         {#each steps as step, index}
-          <div class:bottom-stepper-item-active={index === activeStep} class="bottom-stepper-item">
+          <button
+            type="button"
+            class:bottom-stepper-item-active={index === activeStep}
+            class="bottom-stepper-item"
+            aria-label={`Go to ${step.title}`}
+            aria-current={index === activeStep ? 'step' : undefined}
+            on:click={() => (activeStep = index)}
+          >
             <span class="bottom-stepper-dot" aria-hidden="true">{index + 1}</span>
-            <span class="bottom-stepper-label">{step.title}</span>
-          </div>
+            <span class="sr-only">{step.title}</span>
+          </button>
         {/each}
       </div>
     </article>
   </section>
 
   <div class="detail-page-actions">
-    <a class="primary-link" href={api.getQrDownloadPath(container.id)}>Download QR Label</a>
     <button class="button-danger" type="button" disabled={isDeletingContainer} on:click={handleContainerDelete}>
       {isDeletingContainer ? 'Deleting…' : 'Delete Container'}
     </button>

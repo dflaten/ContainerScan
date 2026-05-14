@@ -139,7 +139,7 @@
       </article>
 
       <article class="dashboard-stat">
-        <span class="dashboard-stat-label">Needs details</span>
+        <span class="dashboard-stat-label">Empty Labels</span>
         <strong>{pendingContainers.length}</strong>
       </article>
     </div>
@@ -214,12 +214,6 @@
       </div>
     {:else}
       {#if documentedContainers.length > 0}
-        {#if pendingContainers.length > 0}
-          <div class="panel-heading">
-            <span class="eyebrow">Documented</span>
-          </div>
-        {/if}
-
         <div class="dashboard-grid">
           {#each documentedContainers as container}
             {@const image = primaryImageFor(container)}
@@ -254,22 +248,29 @@
             </article>
           {/each}
         </div>
+      {:else if pendingContainers.length > 0}
+        <div class="empty-state">
+          <h3>No documented containers yet.</h3>
+          <p>Use the Empty Labels section below to start filling in container details.</p>
+        </div>
       {/if}
+    {/if}
+  </article>
 
-      {#if pendingContainers.length > 0}
-        {#if documentedContainers.length > 0}
-          <div class="panel-heading">
-            <span class="eyebrow">Needs Details</span>
-          </div>
-        {/if}
+  {#if pendingContainers.length > 0}
+    <article class="panel panel-wide">
+      <div class="panel-heading">
+        <span class="eyebrow">Empty Labels</span>
+      </div>
 
+      {#if !data.containerError && data.containers.length > 0}
         <div class="dashboard-grid">
           {#each pendingContainers as container}
             <article class="container-card">
               <a class="card-link" href={`/containers/${container.id}`}>
                 <div class="card-content-box">
                   <div class="card-image-wrap">
-                    <div class="card-image card-image-empty">Ready for label download</div>
+                    <div class="card-image card-image-empty">Ready for use</div>
                   </div>
 
                   <div class="card-body">
@@ -286,6 +287,6 @@
           {/each}
         </div>
       {/if}
-    {/if}
-  </article>
+    </article>
+  {/if}
 </section>

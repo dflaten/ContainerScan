@@ -179,8 +179,8 @@
     {:else}
       {#if pendingContainers.length > 0}
         <div class="panel-heading">
-          <span class="eyebrow">Needs Details</span>
-          <h3>Tags generated, waiting to be filled in</h3>
+          <span class="eyebrow">Empty Labels</span>
+          <h3>Labels created, waiting to be filled in</h3>
         </div>
 
         <div class="dashboard-grid">
@@ -189,7 +189,7 @@
               <a class="card-link" href={`/containers/${container.id}`}>
                 <div class="card-content-box">
                   <div class="card-image-wrap">
-                    <div class="card-image card-image-empty">Ready for label download</div>
+                    <div class="card-image card-image-empty">Ready for use</div>
                   </div>
 
                   <div class="card-body">
