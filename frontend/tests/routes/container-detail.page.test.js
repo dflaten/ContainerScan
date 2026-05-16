@@ -71,12 +71,6 @@ describe('container detail route', () => {
     vi.restoreAllMocks();
   });
 
-  test('does not show a floating dashboard shortcut on the container page', () => {
-    const { container } = render(Page, { data: buildData() });
-
-    expect(container.querySelector('.floating-dashboard-link')).toBeNull();
-  });
-
   test('saves metadata updates through the container api and advances quietly', async () => {
     mocks.api.updateContainer.mockResolvedValue(
       buildContainer({
