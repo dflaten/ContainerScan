@@ -25,7 +25,6 @@
 
   let container = data.container;
   let pageError = null;
-  let pageNotice = null;
   let activeStep = 0;
   let isSavingStep = false;
   let isDeletingContainer = false;
@@ -50,9 +49,8 @@
     };
   }
 
-  async function saveMetadata(notice) {
+  async function saveMetadata() {
     pageError = null;
-    pageNotice = null;
     isSavingStep = true;
 
     try {
@@ -62,7 +60,6 @@
         tag_ids: form.tag_ids
       });
       form = buildForm(container);
-      pageNotice = notice;
       return true;
     } catch (error) {
       pageError = error.detail ?? error.message ?? 'Unable to update the container.';
@@ -73,15 +70,14 @@
   }
 
   async function handleDetailsNext() {
-    const saved = await saveMetadata('Saved name and description.');
+    const saved = await saveMetadata();
     if (saved) {
-      pageNotice = null;
       activeStep = 1;
     }
   }
 
   async function handleOrganizationNext() {
-    const saved = await saveMetadata('Saved room and tags.');
+    const saved = await saveMetadata();
     if (saved) {
       activeStep = 2;
     }
@@ -90,14 +86,10 @@
   function handleFileSelection(event) {
     selectedFiles = Array.from(event.currentTarget.files ?? []);
     pageError = null;
-    pageNotice = selectedFiles.length
-      ? `${selectedFiles.length} image${selectedFiles.length === 1 ? '' : 's'} ready to upload.`
-      : null;
   }
 
   async function handleImageFinish() {
     pageError = null;
-    pageNotice = null;
 
     if (selectedFiles.length === 0 && container.images.length === 0) {
       pageError = 'Choose at least one image before finishing this container.';
@@ -130,7 +122,6 @@
 
   async function handleContainerDelete() {
     pageError = null;
-    pageNotice = null;
 
     if (!window.confirm(`Delete container ${container.code}? This also removes its images.`)) {
       return;
@@ -177,15 +168,6 @@
     </div>
   </section>
 {:else}
-  <a class="floating-dashboard-link" href="/" aria-label="Back to dashboard" title="Back to dashboard">
-    <svg viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        d="M3 13.2L12 5l9 8.2v7.3a1.5 1.5 0 0 1-1.5 1.5h-4.7v-6.2h-5.6V22H4.5A1.5 1.5 0 0 1 3 20.5z"
-        fill="currentColor"
-      />
-    </svg>
-  </a>
-
   <section class="content-grid detail-grid">
     <article class="panel">
       <div class="panel-heading">
@@ -202,14 +184,9 @@
         </div>
       {/if}
 
-      {#if pageNotice}
-        <div class="notice-banner">{pageNotice}</div>
-      {/if}
-
       {#if pageError}
-        <div class="diagnostics">
-          <h3>Update failed</h3>
-          <p>{pageError}</p>
+        <div class="notice-banner notice-banner-error" role="alert">
+          {pageError}
         </div>
       {/if}
 
@@ -337,7 +314,7 @@
                 Back
               </button>
               <button class="primary-button" type="button" disabled={isUploadingImages} on:click={handleImageFinish}>
-                {isUploadingImages ? 'Uploading…' : 'Save and Finish'}
+                {isUploadingImages ? 'Uploading…' : 'Finish'}
               </button>
             </div>
           </section>

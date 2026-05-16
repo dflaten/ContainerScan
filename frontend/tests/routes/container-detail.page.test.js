@@ -71,13 +71,7 @@ describe('container detail route', () => {
     vi.restoreAllMocks();
   });
 
-  test('shows a floating dashboard shortcut on the container page', () => {
-    const { container } = render(Page, { data: buildData() });
-
-    expect(container.querySelector('.floating-dashboard-link')).toHaveAttribute('href', '/');
-  });
-
-  test('saves metadata updates through the container api and shows a success notice', async () => {
+  test('saves metadata updates through the container api and advances quietly', async () => {
     mocks.api.updateContainer.mockResolvedValue(
       buildContainer({
         name: 'Updated Garage Box 3',
@@ -104,6 +98,18 @@ describe('container detail route', () => {
 
     expect(screen.getByLabelText('Room')).toBeInTheDocument();
     expect(screen.getByText('Room/Tags/Color')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  test('shows save failures in the inline error banner', async () => {
+    mocks.api.updateContainer.mockRejectedValue({ detail: 'Unable to save container.' });
+
+    render(Page, { data: buildData() });
+
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to save container.');
+    expect(screen.getByLabelText('Name')).toBeInTheDocument();
   });
 
   test('deletes the container after confirmation and redirects to the dashboard', async () => {
@@ -165,7 +171,7 @@ describe('container detail route', () => {
     await fireEvent.change(uploadInput, {
       target: { files: [file] }
     });
-    await fireEvent.click(screen.getByRole('button', { name: /save and finish/i }));
+    await fireEvent.click(screen.getByRole('button', { name: /^finish$/i }));
 
     await waitFor(() => {
       expect(mocks.api.uploadContainerImages).toHaveBeenCalledWith('container-1', {
