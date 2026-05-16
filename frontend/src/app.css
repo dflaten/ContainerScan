@@ -899,6 +899,11 @@ li {
   font-weight: 600;
 }
 
+.notice-banner-error {
+  background: color-mix(in srgb, white 82%, var(--color-warning-100) 18%);
+  color: var(--color-warning-900);
+}
+
 .bottom-stepper,
 .bottom-stepper-item,
 .wizard-shell,
