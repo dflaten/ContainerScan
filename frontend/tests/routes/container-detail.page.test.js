@@ -153,6 +153,32 @@ describe('container detail route', () => {
     expect(screen.getByText('1 already saved')).toBeInTheDocument();
   });
 
+  test('saves organization changes before going back to the details step', async () => {
+    mocks.api.updateContainer.mockResolvedValue(buildContainer({ room_id: null }));
+
+    render(Page, { data: buildData() });
+
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+    await screen.findByLabelText('Room');
+
+    await fireEvent.change(screen.getByLabelText('Room'), {
+      target: { value: '' }
+    });
+    await fireEvent.click(screen.getByRole('button', { name: /^back$/i }));
+
+    await waitFor(() => {
+      expect(mocks.api.updateContainer).toHaveBeenLastCalledWith('container-1', {
+        name: 'Garage Box 3',
+        description: 'Camping gear',
+        colour: '#3B82F6',
+        room_id: null,
+        tag_ids: ['label-1']
+      });
+    });
+
+    expect(screen.getByLabelText('Name')).toBeInTheDocument();
+  });
+
   test('uploads selected images on the final step and redirects to the dashboard', async () => {
     mocks.api.updateContainer.mockResolvedValue(buildContainer());
     mocks.api.uploadContainerImages.mockResolvedValue([]);
@@ -216,9 +242,25 @@ describe('container detail route', () => {
   });
 
   test('allows navigating steps from the bottom stepper', async () => {
+    mocks.api.updateContainer.mockResolvedValue(buildContainer({ description: 'Repacked gear' }));
+
     render(Page, { data: buildData() });
 
+    await fireEvent.input(screen.getByLabelText('Description'), {
+      target: { value: 'Repacked gear' }
+    });
+
     await fireEvent.click(screen.getByRole('button', { name: /go to room\/tags\/color/i }));
+
+    await waitFor(() => {
+      expect(mocks.api.updateContainer).toHaveBeenCalledWith('container-1', {
+        name: 'Garage Box 3',
+        description: 'Repacked gear',
+        colour: '#3B82F6',
+        room_id: 'room-1',
+        tag_ids: ['label-1']
+      });
+    });
 
     expect(screen.getByLabelText('Room')).toBeInTheDocument();
   });

@@ -83,6 +83,21 @@
     }
   }
 
+  async function navigateToStep(targetStep) {
+    if (targetStep === activeStep) {
+      return;
+    }
+
+    if (activeStep === 0 || activeStep === 1) {
+      const saved = await saveMetadata();
+      if (!saved) {
+        return;
+      }
+    }
+
+    activeStep = targetStep;
+  }
+
   function handleFileSelection(event) {
     selectedFiles = Array.from(event.currentTarget.files ?? []);
     pageError = null;
@@ -260,7 +275,7 @@
             </label>
 
             <div class="wizard-actions">
-              <button type="button" class="secondary-button" on:click={() => (activeStep = 0)}>Back</button>
+              <button type="button" class="secondary-button" on:click={() => navigateToStep(0)}>Back</button>
               <button class="primary-button" type="submit" disabled={isSavingStep}>
                 {isSavingStep ? 'Saving…' : 'Next'}
               </button>
@@ -310,7 +325,7 @@
             {/if}
 
             <div class="wizard-actions">
-              <button type="button" class="secondary-button" disabled={isUploadingImages} on:click={() => (activeStep = 1)}>
+              <button type="button" class="secondary-button" disabled={isUploadingImages} on:click={() => navigateToStep(1)}>
                 Back
               </button>
               <button class="primary-button" type="button" disabled={isUploadingImages} on:click={handleImageFinish}>
@@ -329,7 +344,7 @@
             class="bottom-stepper-item"
             aria-label={`Go to ${step.title}`}
             aria-current={index === activeStep ? 'step' : undefined}
-            on:click={() => (activeStep = index)}
+            on:click={() => navigateToStep(index)}
           >
             <span class="bottom-stepper-dot" aria-hidden="true">{index + 1}</span>
             <span class="sr-only">{step.title}</span>
