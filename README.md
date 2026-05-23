@@ -2,6 +2,30 @@
 
 ContainerScan is a LAN-only web app for labeling storage containers with QR codes and browsing their contents.
 
+## Architecture
+
+```mermaid
+flowchart LR
+    U[User on LAN<br/>Phone or Desktop Browser]
+
+    subgraph H[Docker Host]
+        N[Nginx<br/>Reverse Proxy]
+        F[Frontend<br/>SvelteKit]
+        B[Backend API<br/>FastAPI]
+        D[(PostgreSQL)]
+        I[(Image Storage Volume)]
+    end
+
+    U -->|HTTP / scan / app| N
+    N --> F
+    N --> B
+    F -->|Server-side API calls| B
+    B --> D
+    B --> I
+```
+
+All application traffic stays on the local network. Nginx fronts the app, the frontend talks to the FastAPI backend, and the backend persists container data in Postgres while storing uploaded images on a mounted volume.
+
 ## Development Setup
 
 The repository now includes a development compose override with:
