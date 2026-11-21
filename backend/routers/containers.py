@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
-from sqlalchemy import func, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, selectinload
 
@@ -30,7 +30,7 @@ def list_containers(
     """List all containers with image metadata preloaded.
 
     Args:
-        search: Optional full-text search string for code, name, and description.
+        search: Optional case-insensitive substring search for code, name, and description.
         room_id: Optional room filter.
         tag_id: Optional tag filter.
         label_id: Deprecated single-label filter alias.
@@ -267,7 +267,7 @@ def _build_container_list_statement(
     """Build the container listing query with optional search and filters.
 
     Args:
-        search: Optional full-text search string for code, name, and description.
+        search: Optional case-insensitive substring search for code, name, and description.
         room_id: Optional room filter.
         tag_id: Optional tag filter.
         code: Optional exact container code filter.
@@ -282,14 +282,15 @@ def _build_container_list_statement(
     )
 
     if search is not None:
-        english_query = func.plainto_tsquery("english", search)
-        simple_query = func.plainto_tsquery("simple", search)
-        statement = statement.where(
-            or_(
-                Container.search_vector.op("@@")(english_query),
-                Container.search_vector.op("@@")(simple_query),
+        for term in search.split():
+            pattern = f"%{_escape_like(term)}%"
+            statement = statement.where(
+                or_(
+                    Container.code.ilike(pattern, escape="\\"),
+                    Container.name.ilike(pattern, escape="\\"),
+                    Container.description.ilike(pattern, escape="\\"),
+                )
             )
-        )
 
     if room_id is not None:
         statement = statement.where(Container.room_id == room_id)
@@ -363,6 +364,18 @@ def _normalize_optional_code(value: str | None) -> str | None:
     if normalized is None:
         return None
     return normalized.upper()
+
+
+def _escape_like(value: str) -> str:
+    """Escape SQL LIKE wildcards so search terms match literally.
+
+    Args:
+        value: Raw search term.
+
+    Returns:
+        str: Term with backslashes and wildcard characters escaped.
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _commit_or_raise_conflict(session: Session) -> None:
