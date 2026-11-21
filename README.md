@@ -132,6 +132,50 @@ Generate a new revision after model changes:
 make migrate-revision MSG="describe change"
 ```
 
+## Updating Dependencies
+
+Show available backend and frontend updates without changing anything:
+
+```bash
+make deps-outdated
+```
+
+Update dependencies:
+
+```bash
+make update-deps
+```
+
+This upgrades `backend/uv.lock` to the newest versions allowed by the
+constraints in `backend/pyproject.toml`, and updates `frontend/package.json` /
+`frontend/package-lock.json` without crossing major versions.
+
+To allow major version bumps for frontend packages:
+
+```bash
+make update-deps-major
+```
+
+Backend versions remain limited by the ranges in `backend/pyproject.toml`; edit
+those ranges manually if a major upgrade is blocked. Major bumps can require
+code changes, so review the diff and verify the result:
+
+```bash
+make test
+make frontend-build
+```
+
+If `npm install` fails after `npm-check-updates` has rewritten `package.json`,
+there is no automatic rollback. Reset the frontend manifests and retry:
+
+```bash
+git checkout -- frontend/package.json frontend/package-lock.json
+```
+
+Docker image tags (`postgres`, `nginx`, `python`, `node`) and the pinned `uv`
+image in `backend/Dockerfile` are managed manually and are not updated by these
+targets.
+
 ## Useful Local Commands
 
 Backend lint:
