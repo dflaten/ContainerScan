@@ -75,9 +75,8 @@ describe('advanced search route', () => {
 
     await waitFor(() => {
       expect(mocks.goto).toHaveBeenCalledWith('/advanced-search?room_id=room-1&tag_id=label-1', {
-        replaceState: true,
-        keepFocus: true,
-        noScroll: true
+        replace: true,
+        reset: false
       });
     });
   });

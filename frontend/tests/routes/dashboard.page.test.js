@@ -188,9 +188,8 @@ describe('dashboard route', () => {
 
     await waitFor(() => {
       expect(mocks.goto).toHaveBeenCalledWith('/?search=camping+gear', {
-        replaceState: true,
-        keepFocus: true,
-        noScroll: true
+        replace: true,
+        reset: false
       });
     });
   });

@@ -61,9 +61,8 @@
 
   async function applyFilters() {
     await goto(buildAdvancedSearchQuery(filters), {
-      replaceState: true,
-      keepFocus: true,
-      noScroll: true
+      replace: true,
+      reset: false
     });
   }
 

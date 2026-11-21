@@ -51,9 +51,8 @@
 
   async function applyFilters() {
     await goto(buildDashboardQuery(filters), {
-      replaceState: true,
-      keepFocus: true,
-      noScroll: true
+      replace: true,
+      reset: false
     });
   }
 
