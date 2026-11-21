@@ -1,0 +1,9 @@
+node_modules/
+.svelte-kit/
+.svelte-kit-cache/
+.vite-cache/
+build/
+dist/
+coverage/
+.env
+npm-debug.log*
