@@ -5,6 +5,7 @@
   export let data;
 
   const api = createApi(fetch);
+  const MAX_IMAGE_SORT_ORDER = 2_147_483_646;
   const steps = [
     {
       eyebrow: 'Step 1',
@@ -32,6 +33,7 @@
   let activeImageAction = null;
   let imageStatusMessage = '';
   let selectedFiles = [];
+  let imageDrafts = buildImageDrafts(container?.images ?? []);
   let form = buildForm(container);
 
   function buildForm(source) {
@@ -99,6 +101,11 @@
       if (!saved) {
         return;
       }
+    } else if (activeStep === 2) {
+      const saved = await saveDirtyImages();
+      if (!saved) {
+        return;
+      }
     }
 
     activeStep = targetStep;
@@ -122,7 +129,137 @@
     return image.caption?.trim() || `photo ${index + 1}`;
   }
 
-  $: hasImagesToSave = container.images.length > 0 || selectedFiles.length > 0;
+  function buildImageDrafts(images) {
+    return Object.fromEntries(
+      images.map((image) => [
+        image.id,
+        {
+          caption: image.caption ?? '',
+          sort_order: String(image.sort_order)
+        }
+      ])
+    );
+  }
+
+  function ensureImageDrafts(images) {
+    const nextDrafts = {};
+
+    for (const image of images) {
+      nextDrafts[image.id] = imageDrafts[image.id] ?? {
+        caption: image.caption ?? '',
+        sort_order: String(image.sort_order)
+      };
+    }
+
+    imageDrafts = nextDrafts;
+  }
+
+  function imageDraft(image, drafts = imageDrafts) {
+    return (
+      drafts[image.id] ?? {
+        caption: image.caption ?? '',
+        sort_order: String(image.sort_order)
+      }
+    );
+  }
+
+  function parseSortOrder(value) {
+    const trimmed = String(value ?? '').trim();
+
+    if (!/^\d+$/.test(trimmed)) {
+      return null;
+    }
+
+    const parsed = Number(trimmed);
+    return Number.isSafeInteger(parsed) && parsed <= MAX_IMAGE_SORT_ORDER ? parsed : null;
+  }
+
+  function isImageDirty(image, drafts = imageDrafts) {
+    const draft = drafts[image.id];
+
+    if (!draft) {
+      return false;
+    }
+
+    return (
+      draft.caption.trim() !== (image.caption ?? '') ||
+      parseSortOrder(draft.sort_order) !== image.sort_order
+    );
+  }
+
+  function updateImageDraft(imageId, field, value) {
+    imageDrafts = {
+      ...imageDrafts,
+      [imageId]: {
+        ...imageDrafts[imageId],
+        [field]: value
+      }
+    };
+  }
+
+  async function saveImageDetails(image) {
+    const draft = imageDrafts[image.id];
+
+    if (!draft || activeImageAction || isUploadingImages) {
+      return false;
+    }
+
+    const sortOrder = parseSortOrder(draft.sort_order);
+
+    if (sortOrder === null) {
+      pageError = 'Photo order must be a whole number from 0 to 2,147,483,646.';
+      return false;
+    }
+
+    pageError = null;
+    imageStatusMessage = '';
+    activeImageAction = { id: image.id, type: 'save' };
+
+    try {
+      const updated = await api.updateImage(image.id, {
+        caption: draft.caption.trim() || null,
+        sort_order: sortOrder
+      });
+
+      container = {
+        ...container,
+        images: sortImages(
+          container.images.map((item) => (item.id === updated.id ? { ...item, ...updated } : item))
+        )
+      };
+      imageDrafts = {
+        ...imageDrafts,
+        [updated.id]: {
+          caption: updated.caption ?? '',
+          sort_order: String(updated.sort_order)
+        }
+      };
+
+      const updatedIndex = container.images.findIndex((item) => item.id === updated.id);
+      imageStatusMessage = `${imageName(updated, updatedIndex)} saved.`;
+      return true;
+    } catch (error) {
+      pageError = error.detail ?? error.message ?? 'Unable to save photo details.';
+      return false;
+    } finally {
+      activeImageAction = null;
+    }
+  }
+
+  async function saveDirtyImages() {
+    const dirtyImages = container.images.filter((image) => isImageDirty(image));
+
+    for (const image of dirtyImages) {
+      if (!(await saveImageDetails(image))) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  $: ensureImageDrafts(container?.images ?? []);
+  $: hasImagesToSave = (container?.images.length ?? 0) > 0 || selectedFiles.length > 0;
   $: imageActionsDisabled = activeImageAction !== null || isUploadingImages;
 
   async function handleSetPrimaryImage(image, index) {
@@ -209,6 +346,11 @@
 
     if (selectedFiles.length === 0 && container.images.length === 0) {
       pageError = 'Choose at least one image before finishing this container.';
+      return;
+    }
+
+    const saved = await saveDirtyImages();
+    if (!saved) {
       return;
     }
 
@@ -395,6 +537,7 @@
                 <span class="eyebrow">Add Photos</span>
                 {#if container.images.length > 0}
                   <span>{container.images.length} already saved</span>
+                  <span class="field-note">Change a caption or order, then choose Save.</span>
                 {/if}
               </div>
 
@@ -404,7 +547,7 @@
                     {#each container.images as image, index (image.id)}
                       <figure class:existing-image-primary={image.is_primary} class="existing-image-card">
                         <img class="existing-image-thumb" src={image.url} alt={image.caption || container.name} />
-                        <figcaption class="existing-image-actions">
+                        <div class="existing-image-actions">
                           {#if image.is_primary}
                             <span class="image-primary-badge">Main photo</span>
                           {:else}
@@ -431,7 +574,50 @@
                               ? 'Deleting…'
                               : 'Delete'}
                           </button>
-                        </figcaption>
+                        </div>
+
+                        <div class="existing-image-edit">
+                          <label class="field">
+                            <span>Caption</span>
+                            <input
+                              type="text"
+                              maxlength="255"
+                              value={imageDraft(image, imageDrafts).caption}
+                              aria-label={`Caption for ${imageName(image, index)}`}
+                              disabled={imageActionsDisabled}
+                              on:input={(event) =>
+                                updateImageDraft(image.id, 'caption', event.currentTarget.value)}
+                            />
+                          </label>
+
+                          <div class="existing-image-edit-row">
+                            <label class="field">
+                              <span>Order</span>
+                              <input
+                                type="number"
+                                min="0"
+                                max={MAX_IMAGE_SORT_ORDER}
+                                step="1"
+                                value={imageDraft(image, imageDrafts).sort_order}
+                                aria-label={`Sort order for ${imageName(image, index)}`}
+                                disabled={imageActionsDisabled}
+                                on:input={(event) =>
+                                  updateImageDraft(image.id, 'sort_order', event.currentTarget.value)}
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              class="image-save-button"
+                              aria-label={`Save details for ${imageName(image, index)}`}
+                              disabled={imageActionsDisabled || !isImageDirty(image, imageDrafts)}
+                              on:click={() => saveImageDetails(image)}
+                            >
+                              {activeImageAction?.id === image.id && activeImageAction.type === 'save'
+                                ? 'Saving…'
+                                : 'Save'}
+                            </button>
+                          </div>
+                        </div>
                       </figure>
                     {/each}
                   </div>

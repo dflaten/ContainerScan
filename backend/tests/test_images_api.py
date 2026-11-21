@@ -9,7 +9,9 @@ from tempfile import SpooledTemporaryFile
 from tempfile import TemporaryDirectory
 import uuid
 
+import pytest
 from fastapi import HTTPException, UploadFile
+from pydantic import ValidationError
 from starlette.datastructures import UploadFile as StarletteUploadFile
 from sqlalchemy.exc import IntegrityError
 
@@ -333,6 +335,25 @@ def test_first_uploaded_image_becomes_primary_for_a_container() -> None:
 
     assert created[0].is_primary is True
     assert created[0].caption == "Outside shelf view"
+
+
+def test_image_update_rejects_overlong_caption() -> None:
+    """Verify captions cannot exceed the database column length."""
+    with pytest.raises(ValidationError):
+        ImageUpdate(caption="x" * 256, sort_order=0)
+
+
+def test_image_update_trims_caption_before_checking_length() -> None:
+    """Verify trailing whitespace does not count against the caption limit."""
+    update = ImageUpdate(caption=f"{'x' * 255}   ", sort_order=0)
+
+    assert update.caption == "x" * 255
+
+
+def test_image_update_rejects_sort_order_outside_integer_range() -> None:
+    """Verify sort orders stay within the PostgreSQL integer column range."""
+    with pytest.raises(ValidationError):
+        ImageUpdate(caption=None, sort_order=2_147_483_647)
 
 
 def test_delete_stored_image_is_idempotent() -> None:
