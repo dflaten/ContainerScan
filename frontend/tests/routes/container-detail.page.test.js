@@ -241,6 +241,222 @@ describe('container detail route', () => {
     expect(screen.getByAltText('Inside bin')).toBeInTheDocument();
   });
 
+  test('sets an existing image as the main photo', async () => {
+    const container = buildContainer({
+      images: [
+        {
+          id: 'image-1',
+          url: '/images/one.jpg',
+          uploaded_at: '2026-05-06T12:00:00Z',
+          caption: 'Front shelf',
+          sort_order: 0,
+          is_primary: true
+        },
+        {
+          id: 'image-2',
+          url: '/images/two.jpg',
+          uploaded_at: '2026-05-07T12:00:00Z',
+          caption: 'Inside bin',
+          sort_order: 1,
+          is_primary: false
+        }
+      ]
+    });
+
+    mocks.api.updateContainer.mockResolvedValue(container);
+    mocks.api.updateImage.mockResolvedValue({
+      ...container.images[1],
+      is_primary: true
+    });
+
+    render(Page, { data: buildData({ container }) });
+
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+    await screen.findByLabelText('Room');
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+
+    await fireEvent.click(screen.getByRole('button', { name: /set as main photo for inside bin/i }));
+
+    await waitFor(() => {
+      expect(mocks.api.updateImage).toHaveBeenCalledWith('image-2', {
+        is_primary: true,
+        caption: 'Inside bin',
+        sort_order: 1
+      });
+      expect(
+        screen.queryByRole('button', { name: /set as main photo for inside bin/i })
+      ).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Main photo')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /set as main photo for front shelf/i })
+    ).toBeInTheDocument();
+  });
+
+  test('deletes an existing image after confirmation', async () => {
+    const container = buildContainer({
+      images: [
+        {
+          id: 'image-1',
+          url: '/images/one.jpg',
+          uploaded_at: '2026-05-06T12:00:00Z',
+          caption: 'Front shelf',
+          sort_order: 0,
+          is_primary: true
+        },
+        {
+          id: 'image-2',
+          url: '/images/two.jpg',
+          uploaded_at: '2026-05-07T12:00:00Z',
+          caption: 'Inside bin',
+          sort_order: 1,
+          is_primary: false
+        }
+      ]
+    });
+
+    mocks.api.updateContainer.mockResolvedValue(container);
+    mocks.api.deleteImage.mockResolvedValue(null);
+    mocks.api.getContainer.mockResolvedValue(
+      buildContainer({ images: [container.images[0]] })
+    );
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(Page, { data: buildData({ container }) });
+
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+    await screen.findByLabelText('Room');
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+
+    await fireEvent.click(screen.getByRole('button', { name: /delete inside bin/i }));
+
+    await waitFor(() => {
+      expect(mocks.api.deleteImage).toHaveBeenCalledWith('image-2');
+      expect(screen.queryByAltText('Inside bin')).not.toBeInTheDocument();
+    });
+
+    expect(mocks.api.getContainer).toHaveBeenCalledWith('container-1');
+    expect(screen.getByAltText('Front shelf')).toBeInTheDocument();
+  });
+
+  test('promotes the next image when the main photo is deleted', async () => {
+    const container = buildContainer({
+      images: [
+        {
+          id: 'image-1',
+          url: '/images/one.jpg',
+          uploaded_at: '2026-05-06T12:00:00Z',
+          caption: 'Front shelf',
+          sort_order: 0,
+          is_primary: true
+        },
+        {
+          id: 'image-2',
+          url: '/images/two.jpg',
+          uploaded_at: '2026-05-07T12:00:00Z',
+          caption: 'Inside bin',
+          sort_order: 1,
+          is_primary: false
+        }
+      ]
+    });
+
+    mocks.api.updateContainer.mockResolvedValue(container);
+    mocks.api.deleteImage.mockResolvedValue(null);
+    mocks.api.getContainer.mockResolvedValue(
+      buildContainer({ images: [{ ...container.images[1], is_primary: true }] })
+    );
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(Page, { data: buildData({ container }) });
+
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+    await screen.findByLabelText('Room');
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+
+    await fireEvent.click(screen.getByRole('button', { name: /delete front shelf/i }));
+
+    await waitFor(() => {
+      expect(mocks.api.deleteImage).toHaveBeenCalledWith('image-1');
+      expect(screen.queryByAltText('Front shelf')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', { name: /set as main photo for inside bin/i })
+      ).not.toBeInTheDocument();
+    });
+
+    expect(mocks.api.getContainer).toHaveBeenCalledWith('container-1');
+    expect(screen.getByText('Main photo')).toBeInTheDocument();
+    expect(screen.getByAltText('Inside bin')).toBeInTheDocument();
+  });
+
+  test('keeps the image when deletion is cancelled', async () => {
+    const container = buildContainer();
+
+    mocks.api.updateContainer.mockResolvedValue(container);
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+
+    render(Page, { data: buildData({ container }) });
+
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+    await screen.findByLabelText('Room');
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+
+    await fireEvent.click(screen.getByRole('button', { name: /delete front shelf/i }));
+
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(mocks.api.deleteImage).not.toHaveBeenCalled();
+    expect(screen.getByAltText('Front shelf')).toBeInTheDocument();
+  });
+
+  test('shows image deletion failures in the inline error banner', async () => {
+    const container = buildContainer();
+
+    mocks.api.updateContainer.mockResolvedValue(container);
+    mocks.api.deleteImage.mockRejectedValue({ detail: 'Unable to delete photo.' });
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(Page, { data: buildData({ container }) });
+
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+    await screen.findByLabelText('Room');
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+
+    await fireEvent.click(screen.getByRole('button', { name: /delete front shelf/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to delete photo.');
+    expect(screen.getByAltText('Front shelf')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /delete front shelf/i })).not.toBeDisabled();
+  });
+
+  test('requires a replacement photo after deleting the last image', async () => {
+    const container = buildContainer();
+
+    mocks.api.updateContainer.mockResolvedValue(container);
+    mocks.api.deleteImage.mockResolvedValue(null);
+    mocks.api.getContainer.mockResolvedValue(buildContainer({ images: [] }));
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(Page, { data: buildData({ container }) });
+
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+    await screen.findByLabelText('Room');
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+
+    expect(screen.getByRole('button', { name: /^finish$/i })).toBeEnabled();
+
+    await fireEvent.click(screen.getByRole('button', { name: /delete front shelf/i }));
+
+    expect(confirmSpy).toHaveBeenCalledWith(expect.stringMatching(/add another photo/i));
+
+    await waitFor(() => {
+      expect(screen.queryByAltText('Front shelf')).not.toBeInTheDocument();
+    });
+
+    expect(screen.getByText(/add at least one photo to finish/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^finish$/i })).toBeDisabled();
+  });
+
   test('allows navigating steps from the bottom stepper', async () => {
     mocks.api.updateContainer.mockResolvedValue(buildContainer({ description: 'Repacked gear' }));
 

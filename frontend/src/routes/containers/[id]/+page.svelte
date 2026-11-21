@@ -29,6 +29,8 @@
   let isSavingStep = false;
   let isDeletingContainer = false;
   let isUploadingImages = false;
+  let activeImageAction = null;
+  let imageStatusMessage = '';
   let selectedFiles = [];
   let form = buildForm(container);
 
@@ -84,6 +86,10 @@
   }
 
   async function navigateToStep(targetStep) {
+    if (activeImageAction || isUploadingImages) {
+      return;
+    }
+
     if (targetStep === activeStep) {
       return;
     }
@@ -103,8 +109,103 @@
     pageError = null;
   }
 
+  function sortImages(images) {
+    return [...images].sort(
+      (left, right) =>
+        left.sort_order - right.sort_order ||
+        String(left.uploaded_at).localeCompare(String(right.uploaded_at)) ||
+        String(left.id).localeCompare(String(right.id))
+    );
+  }
+
+  function imageName(image, index) {
+    return image.caption?.trim() || `photo ${index + 1}`;
+  }
+
+  $: hasImagesToSave = container.images.length > 0 || selectedFiles.length > 0;
+  $: imageActionsDisabled = activeImageAction !== null || isUploadingImages;
+
+  async function handleSetPrimaryImage(image, index) {
+    if (image.is_primary || activeImageAction || isUploadingImages) {
+      return;
+    }
+
+    pageError = null;
+    imageStatusMessage = '';
+    activeImageAction = { id: image.id, type: 'primary' };
+
+    try {
+      // ImageUpdate requires sort_order and would clear the caption if it were omitted.
+      const updated = await api.updateImage(image.id, {
+        is_primary: true,
+        caption: image.caption,
+        sort_order: image.sort_order
+      });
+
+      container = {
+        ...container,
+        images: container.images.map((item) =>
+          item.id === updated.id ? { ...item, ...updated } : { ...item, is_primary: false }
+        )
+      };
+      imageStatusMessage = `${imageName(image, index)} is now the main photo.`;
+    } catch (error) {
+      pageError = error.detail ?? error.message ?? 'Unable to update the main photo.';
+    } finally {
+      activeImageAction = null;
+    }
+  }
+
+  async function handleDeleteImage(image, index) {
+    if (activeImageAction || isUploadingImages) {
+      return;
+    }
+
+    const name = imageName(image, index);
+    const willRunOutOfImages = container.images.length === 1 && selectedFiles.length === 0;
+    const lastPhotoWarning = willRunOutOfImages
+      ? "\n\nYou'll need to add another photo before you can finish."
+      : '';
+
+    if (!window.confirm(`Delete "${name}"? This cannot be undone.${lastPhotoWarning}`)) {
+      return;
+    }
+
+    pageError = null;
+    imageStatusMessage = '';
+    activeImageAction = { id: image.id, type: 'delete' };
+
+    try {
+      await api.deleteImage(image.id);
+
+      try {
+        const refreshed = await api.getContainer(container.id);
+        container = { ...container, images: refreshed.images };
+      } catch {
+        // Fall back to local removal if the refresh fails after a successful delete.
+        const remaining = sortImages(container.images.filter((item) => item.id !== image.id));
+
+        if (image.is_primary && remaining.length > 0) {
+          remaining[0] = { ...remaining[0], is_primary: true };
+        }
+
+        container = { ...container, images: remaining };
+      }
+
+      imageStatusMessage = `${name} deleted.`;
+    } catch (error) {
+      pageError = error.detail ?? error.message ?? 'Unable to delete the photo.';
+    } finally {
+      activeImageAction = null;
+    }
+  }
+
   async function handleImageFinish() {
     pageError = null;
+
+    if (isUploadingImages || activeImageAction) {
+      return;
+    }
 
     if (selectedFiles.length === 0 && container.images.length === 0) {
       pageError = 'Choose at least one image before finishing this container.';
@@ -137,6 +238,10 @@
 
   async function handleContainerDelete() {
     pageError = null;
+
+    if (isDeletingContainer || activeImageAction || isUploadingImages) {
+      return;
+    }
 
     if (!window.confirm(`Delete container ${container.code}? This also removes its images.`)) {
       return;
@@ -204,6 +309,8 @@
           {pageError}
         </div>
       {/if}
+
+      <p class="sr-only" aria-live="polite">{imageStatusMessage}</p>
 
       <div class="wizard-shell">
         {#if activeStep === 0}
@@ -294,8 +401,38 @@
               {#if container.images.length > 0}
                 <div class="existing-images">
                   <div class="existing-images-grid">
-                    {#each container.images as image (image.id)}
-                      <img class="existing-image-thumb" src={image.url} alt={image.caption || container.name} />
+                    {#each container.images as image, index (image.id)}
+                      <figure class:existing-image-primary={image.is_primary} class="existing-image-card">
+                        <img class="existing-image-thumb" src={image.url} alt={image.caption || container.name} />
+                        <figcaption class="existing-image-actions">
+                          {#if image.is_primary}
+                            <span class="image-primary-badge">Main photo</span>
+                          {:else}
+                            <button
+                              type="button"
+                              class="image-action-button"
+                              aria-label={`Set as main photo for ${imageName(image, index)}`}
+                              disabled={imageActionsDisabled}
+                              on:click={() => handleSetPrimaryImage(image, index)}
+                            >
+                              {activeImageAction?.id === image.id && activeImageAction.type === 'primary'
+                                ? 'Saving…'
+                                : 'Set as main'}
+                            </button>
+                          {/if}
+                          <button
+                            type="button"
+                            class="image-delete-button"
+                            aria-label={`Delete ${imageName(image, index)}`}
+                            disabled={imageActionsDisabled}
+                            on:click={() => handleDeleteImage(image, index)}
+                          >
+                            {activeImageAction?.id === image.id && activeImageAction.type === 'delete'
+                              ? 'Deleting…'
+                              : 'Delete'}
+                          </button>
+                        </figcaption>
+                      </figure>
                     {/each}
                   </div>
                 </div>
@@ -306,7 +443,7 @@
                   type="file"
                   accept="image/*"
                   multiple
-                  disabled={isUploadingImages}
+                  disabled={imageActionsDisabled}
                   on:change={handleFileSelection}
                 />
                 <span>{selectedFiles.length > 0 ? 'Change Images' : 'Choose Images'}</span>
@@ -324,11 +461,27 @@
               </div>
             {/if}
 
+            {#if !hasImagesToSave}
+              <div class="empty-state">
+                <p>Add at least one photo to finish this container.</p>
+              </div>
+            {/if}
+
             <div class="wizard-actions">
-              <button type="button" class="secondary-button" disabled={isUploadingImages} on:click={() => navigateToStep(1)}>
+              <button
+                type="button"
+                class="secondary-button"
+                disabled={imageActionsDisabled}
+                on:click={() => navigateToStep(1)}
+              >
                 Back
               </button>
-              <button class="primary-button" type="button" disabled={isUploadingImages} on:click={handleImageFinish}>
+              <button
+                class="primary-button"
+                type="button"
+                disabled={imageActionsDisabled || !hasImagesToSave}
+                on:click={handleImageFinish}
+              >
                 {isUploadingImages ? 'Uploading…' : 'Finish'}
               </button>
             </div>
@@ -344,6 +497,7 @@
             class="bottom-stepper-item"
             aria-label={`Go to ${step.title}`}
             aria-current={index === activeStep ? 'step' : undefined}
+            disabled={imageActionsDisabled}
             on:click={() => navigateToStep(index)}
           >
             <span class="bottom-stepper-dot" aria-hidden="true">{index + 1}</span>
@@ -355,7 +509,12 @@
   </section>
 
   <div class="detail-page-actions">
-    <button class="button-danger" type="button" disabled={isDeletingContainer} on:click={handleContainerDelete}>
+    <button
+      class="button-danger"
+      type="button"
+      disabled={isDeletingContainer || imageActionsDisabled}
+      on:click={handleContainerDelete}
+    >
       {isDeletingContainer ? 'Deleting…' : 'Delete Container'}
     </button>
   </div>

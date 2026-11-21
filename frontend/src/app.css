@@ -1224,6 +1224,75 @@ li {
   background: color-mix(in srgb, white 38%, var(--color-surface-200) 62%);
 }
 
+.existing-image-card {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0;
+  padding: 0.45rem;
+  border: 2px solid transparent;
+  border-radius: 22px;
+  background: color-mix(in srgb, white 72%, var(--color-surface-100) 28%);
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease;
+}
+
+.existing-image-primary {
+  border-color: color-mix(in srgb, var(--color-secondary-700) 68%, white 32%);
+  background: color-mix(in srgb, white 58%, var(--color-secondary-100) 42%);
+}
+
+.existing-image-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+}
+
+.image-primary-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  background: var(--color-secondary-700);
+  color: white;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.image-action-button,
+.image-delete-button {
+  min-height: 1.75rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.image-action-button {
+  border: 1px solid color-mix(in srgb, var(--color-secondary-700) 42%, white 58%);
+  background: color-mix(in srgb, white 94%, var(--color-secondary-50) 6%);
+  color: var(--color-secondary-900);
+}
+
+.image-delete-button {
+  border: 1px solid color-mix(in srgb, #7a3228 58%, white 42%);
+  background: color-mix(in srgb, white 86%, #b55a4c 14%);
+  color: #7a3228;
+}
+
+.image-action-button:disabled,
+.image-delete-button:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
 .image-editor-card {
   overflow: hidden;
   border: 1px solid var(--cs-panel-border);
@@ -1709,10 +1778,6 @@ li {
 
   .editor-columns {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .existing-images-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .image-editor-grid {
