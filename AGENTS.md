@@ -17,6 +17,7 @@ for developer commands.
 
 ```bash
 make help              # list all targets
+make setup             # install local backend and frontend dependencies
 make dev-build         # start the development stack
 make dev-down          # stop the development stack
 make migrate           # apply database migrations
@@ -29,6 +30,34 @@ make test              # backend and frontend tests
 
 Run commands through `make` when a target exists. Do not add ad-hoc package
 manager invocations that duplicate a Makefile target.
+
+## Working in Worktrees
+
+The dev stack has a fixed Compose project name (`containerscan`), so containers,
+host ports, and named volumes are shared by every worktree.
+
+- Only one dev stack can run at a time (ports `80`, `3000`, `5432`, `8000`).
+- Run Compose-dependent targets (`dev-*`, `migrate*`, `seed-dev`, `logs`, `ps`)
+  only from the worktree that owns the running stack. The `check-stack` target
+  enforces this; `FORCE=1` overrides it for deliberate takeover or orphan
+  cleanup.
+- Run `make dev-down` before removing a worktree. Do not run `make dev-reset`
+  from another worktree; it deletes the shared database, image, and dependency
+  volumes.
+- Database schema, seed data, and uploaded images are shared across worktrees.
+- Rebuilding the frontend image does not refresh the shared
+  `containerscan_frontend_node_modules` volume. After `make update-deps`, remove
+  the volume before starting the dev stack:
+
+  ```bash
+  make dev-down
+  docker volume rm containerscan_frontend_node_modules
+  make dev-build
+  ```
+
+- A fresh worktree has no local `.venv` or `node_modules`. Run `make setup`
+  before local lint, test, or build targets. Docker manages its own copies.
+- Keep `.env` local; it is gitignored.
 
 ## Updating Dependencies
 

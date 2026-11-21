@@ -39,6 +39,9 @@ The repository now includes a development compose override with:
 
 - Docker Engine with the Compose plugin
 
+Local lint, test, and build targets also require `uv`, `node`, and `npm`. Run
+`make setup` once per checkout to install them.
+
 ### Start The Dev Stack
 
 Run from the repository root:
@@ -65,6 +68,34 @@ To also remove the database volume:
 ```bash
 make dev-reset
 ```
+
+## Working in Git Worktrees
+
+The development Compose stack uses a fixed project name (`containerscan`), so
+all worktrees share the same containers, network, host ports, and named volumes.
+
+- Only one development stack can run at a time (ports `80`, `3000`, `5432`, and
+  `8000` are fixed).
+- Run `make dev-*`, `make migrate*`, `make seed-dev`, `make logs`, and `make ps`
+  from the worktree that started the stack. The Makefile refuses to operate on
+  a stack owned by another worktree; use `FORCE=1` only to take it over or to
+  clean up an orphaned stack.
+- Stop the stack with `make dev-down` before removing its worktree. `make
+  dev-reset` also deletes the shared database, image, and dependency volumes.
+- Database schema, seed data, and uploaded images are shared across worktrees.
+- The shared frontend `node_modules` volume is only populated when it is first
+  created; rebuilding the image does not refresh it. After changing frontend
+  dependencies, recreate the volume from the owning worktree:
+
+  ```bash
+  make dev-down
+  docker volume rm containerscan_frontend_node_modules
+  make dev-build
+  ```
+
+- A fresh worktree has no local `.venv` or `node_modules`. Run `make setup`
+  before using local lint, test, or build targets.
+- `.env` is local configuration and is gitignored.
 
 ## Server Deployment
 
@@ -177,6 +208,12 @@ image in `backend/Dockerfile` are managed manually and are not updated by these
 targets.
 
 ## Useful Local Commands
+
+Install local backend and frontend dependencies:
+
+```bash
+make setup
+```
 
 Backend lint:
 
