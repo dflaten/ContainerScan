@@ -41,7 +41,8 @@ The repository now includes a development compose override with:
 
 Local lint, test, and build targets also require `uv`, `node`, and `npm`. Run
 `make setup` once per checkout to install the project's backend and frontend
-dependencies.
+dependencies. The backend targets Python 3.14; `uv` provisions it
+automatically.
 
 ### Start The Dev Stack
 
@@ -164,6 +165,86 @@ Generate a new revision after model changes:
 make migrate-revision MSG="describe change"
 ```
 
+## Upgrading PostgreSQL
+
+PostgreSQL major versions are not data-compatible. A data directory created by
+an older major will not start on a newer one, so upgrading the `postgres` image
+requires moving the old data aside and restoring a logical dump into a fresh
+directory. These steps require the host-directory layout configured with
+`CONTAINERSCAN_DB_DATA_LOCATION` (`/srv/containerscan/postgres` in the examples
+above), which is what `.env.example` uses. If you run with the default named
+`db_data` volume instead, set `CONTAINERSCAN_DB_DATA_LOCATION` to a host
+directory before following them. Plan for downtime; the stack is stopped during
+the restore.
+
+1. Take a dump while the old database is still running. Run the steps in the
+   same shell session so `DUMP` stays set:
+
+   ```bash
+   sudo mkdir -p /srv/containerscan/backups
+   sudo chown "$(id -u):$(id -g)" /srv/containerscan/backups
+   DUMP=/srv/containerscan/backups/containerscan-16-$(date +%F).dump
+   docker compose exec -T db sh -c \
+     'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Fc' > "$DUMP"
+   ls -lh "$DUMP"
+   ```
+
+   The dump redirect runs as your user, so the backup directory must be
+   writable by you. Confirm the dump is non-empty before continuing.
+
+2. Stop the stack and move the old data directory out of the way:
+
+   ```bash
+   docker compose down
+   sudo mv /srv/containerscan/postgres /srv/containerscan/postgres-16
+   sudo mkdir -p /srv/containerscan/postgres
+   ```
+
+   PostgreSQL 18 and newer store data in a versioned subdirectory
+   (`19/docker`), so leave the new directory empty.
+
+3. Set the `db` service in `docker-compose.yml` to the new major
+   (`postgres:19-alpine` in this repository), then initialize the new cluster:
+
+   ```bash
+   docker compose up -d db
+   docker compose ps db
+   ```
+
+   For PostgreSQL 18 and newer the data volume must be mounted at
+   `/var/lib/postgresql`, not `/var/lib/postgresql/data`. This repository uses
+   the new path. Wait until the `db` service reports `healthy`.
+
+4. Restore the dump into the new cluster:
+
+   ```bash
+   docker compose exec -T db sh -c \
+     'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner --no-privileges' \
+     < "$DUMP"
+   ```
+
+5. Start the rest of the stack and verify:
+
+   ```bash
+   docker compose up -d
+   docker compose ps
+   docker compose exec backend uv run alembic current
+   ```
+
+   The backend runs `alembic upgrade head` on startup, so the restored
+   `alembic_version` table should already be at `head`.
+
+6. Keep `/srv/containerscan/postgres-16` until you have confirmed the data is
+   intact. To roll back, stop the stack, move `postgres` to `postgres-19`, move
+   `postgres-16` back to `postgres`, revert the image tag to
+   `postgres:16-alpine` and the mount path to `/var/lib/postgresql/data`, and
+   start the stack again.
+
+If you use the default named `db_data` volume, the directory move in step 2 does
+not apply; switch `CONTAINERSCAN_DB_DATA_LOCATION` to a host directory before
+upgrading, or copy the volume content to a new volume mounted at
+`/var/lib/postgresql`. Do not point the new major at the old data directory.
+
 ## Updating Dependencies
 
 Show available backend and frontend updates without changing anything:
@@ -206,7 +287,8 @@ git checkout -- frontend/package.json frontend/package-lock.json
 
 Docker image tags (`postgres`, `nginx`, `python`, `node`) and the pinned `uv`
 image in `backend/Dockerfile` are managed manually and are not updated by these
-targets.
+targets. Changing the PostgreSQL major version requires a data migration; see
+[Upgrading PostgreSQL](#upgrading-postgresql).
 
 ## Useful Local Commands
 

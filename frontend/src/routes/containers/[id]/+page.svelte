@@ -1,6 +1,6 @@
 <script>
   import { goto } from '$app/navigation';
-  import { createApi } from '$lib/api';
+  import { createApi } from '#lib/api';
 
   export let data;
 

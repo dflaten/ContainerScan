@@ -22,7 +22,7 @@ def render_qr_label_png(
 ) -> bytes:
     """Render one print-ready QR label tile as PNG bytes."""
     import qrcode
-    from PIL import Image, ImageDraw, ImageFont
+    from PIL import Image, ImageDraw
 
     scan_url = build_scan_url(container_id)
     qr_image = qrcode.make(scan_url).convert("RGB")

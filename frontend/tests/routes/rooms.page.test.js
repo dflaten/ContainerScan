@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   }
 }));
 
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api', () => ({
   createApi: () => mocks.api
 }));
 

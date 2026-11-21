@@ -2,7 +2,7 @@
 name = "containerscan-backend"
 version = "0.1.0"
 description = "Backend API for the ContainerScan LAN-only application."
-requires-python = ">=3.12"
+requires-python = ">=3.14"
 dependencies = [
   "alembic>=1.14,<2.0",
   "fastapi>=0.115,<1.0",
@@ -15,7 +15,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "pytest>=8.0,<9.0",
+  "pytest>=9.0,<10.0",
   "ruff>=0.11,<1.0",
   "ty>=0.0.1a16",
 ]
@@ -24,5 +24,8 @@ dev = [
 testpaths = ["tests"]
 
 [tool.ruff]
-target-version = "py312"
+target-version = "py314"
 line-length = 100
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]

@@ -3,7 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-import re
 import sys
 from unittest.mock import patch
 import uuid
@@ -210,16 +209,16 @@ def _integrity_error() -> IntegrityError:
 
 
 def _container_matches_search(container: Container, search: str) -> bool:
-    """Check whether a fake container matches a full-text-style search string.
+    """Check whether a fake container matches a substring-style search string.
 
     Args:
         container: Container to evaluate.
         search: Search text to match against code, name, and description.
 
     Returns:
-        bool: `True` when all normalized search terms are present.
+        bool: `True` when all search terms are present as substrings.
     """
-    terms = re.findall(r"[a-z0-9]+", search.lower())
+    terms = search.lower().split()
     haystack = " ".join([container.code, container.name, container.description]).lower()
     return all(term in haystack for term in terms)
 
@@ -529,6 +528,10 @@ def test_list_containers_supports_search_and_combined_filters() -> None:
     )
 
     assert [item.code for item in list_containers(search="tent", session=session)] == ["BC-23"]
+    assert [item.code for item in list_containers(search="stak", session=session)] == ["BC-23"]
+    assert [item.code for item in list_containers(search="ligh", session=session)] == ["ZX-90"]
+    assert [item.code for item in list_containers(search="ard", session=session)] == ["AA-11"]
+    assert [item.code for item in list_containers(search="camp ge", session=session)] == ["BC-23"]
     assert [item.code for item in list_containers(search="zx-90", session=session)] == ["ZX-90"]
     assert [item.code for item in list_containers(room_id=garage.id, session=session)] == ["ZX-90", "AA-11"]
     assert [item.code for item in list_containers(label_id=seasonal.id, session=session)] == ["ZX-90", "BC-23"]

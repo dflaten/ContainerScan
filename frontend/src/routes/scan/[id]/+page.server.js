@@ -1,5 +1,5 @@
-import { safeRequest } from '$lib/api';
-import { createServerApi } from '$lib/server-api';
+import { safeRequest } from '#lib/api';
+import { createServerApi } from '#lib/server-api';
 
 export async function load({ fetch, params }) {
   const api = createServerApi(fetch);

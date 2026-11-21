@@ -1,5 +1,5 @@
-import { API_BASE_PATH, safeRequest } from '$lib/api';
-import { createServerApi } from '$lib/server-api';
+import { API_BASE_PATH, safeRequest } from '#lib/api';
+import { createServerApi } from '#lib/server-api';
 
 export async function load({ fetch, url }) {
   const api = createServerApi(fetch);

@@ -1,12 +1,12 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { env } from '$env/dynamic/private';
+import { INTERNAL_API_URL } from '$app/env/private';
 
-import { safeRequest } from '$lib/api';
-import { createServerApi } from '$lib/server-api';
+import { safeRequest } from '#lib/api';
+import { createServerApi } from '#lib/server-api';
 
 export async function load({ fetch, url }) {
   const api = createServerApi(fetch);
-  const internalApiBaseUrl = (env.INTERNAL_API_URL ?? 'http://backend:8000').replace(/\/$/, '');
+  const internalApiBaseUrl = (INTERNAL_API_URL ?? 'http://backend:8000').replace(/\/$/, '');
   const sheetId = url.searchParams.get('sheet');
   const draftCodes = url.searchParams.getAll('draft_code');
   const sheetResult = sheetId ? await safeRequest(api.getPrintSheet(sheetId)) : null;

@@ -1,5 +1,5 @@
-import { safeRequest } from '$lib/api';
-import { createServerApi } from '$lib/server-api';
+import { safeRequest } from '#lib/api';
+import { createServerApi } from '#lib/server-api';
 
 function normalizeFilter(value) {
   if (value === null) {

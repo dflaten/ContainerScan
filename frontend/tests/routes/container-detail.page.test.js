@@ -17,7 +17,7 @@ vi.mock('$app/navigation', () => ({
   goto: mocks.goto
 }));
 
-vi.mock('$lib/api', () => ({
+vi.mock('#lib/api', () => ({
   createApi: () => mocks.api
 }));
 

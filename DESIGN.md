@@ -402,13 +402,13 @@ Each printed QR label is rendered as a tile with three visual layers:
 ```yaml
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:19-alpine
     environment:
       POSTGRES_DB: containerscan
       POSTGRES_USER: cs_user
       POSTGRES_PASSWORD: cs_pass
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql
 
   backend:
     build: ./backend
@@ -494,7 +494,7 @@ containerscan/
     │   │           ├── +page.server.ts
     │   │           └── +page.svelte
     │   └── app.css
-    └── svelte.config.js
+    └── vite.config.js
 └── deploy/
     └── nginx.conf
 ```
