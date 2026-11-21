@@ -40,7 +40,8 @@ The repository now includes a development compose override with:
 - Docker Engine with the Compose plugin
 
 Local lint, test, and build targets also require `uv`, `node`, and `npm`. Run
-`make setup` once per checkout to install them.
+`make setup` once per checkout to install the project's backend and frontend
+dependencies.
 
 ### Start The Dev Stack
 
