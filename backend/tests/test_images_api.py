@@ -343,6 +343,19 @@ def test_image_update_rejects_overlong_caption() -> None:
         ImageUpdate(caption="x" * 256, sort_order=0)
 
 
+def test_image_update_trims_caption_before_checking_length() -> None:
+    """Verify trailing whitespace does not count against the caption limit."""
+    update = ImageUpdate(caption=f"{'x' * 255}   ", sort_order=0)
+
+    assert update.caption == "x" * 255
+
+
+def test_image_update_rejects_sort_order_outside_integer_range() -> None:
+    """Verify sort orders stay within the PostgreSQL integer column range."""
+    with pytest.raises(ValidationError):
+        ImageUpdate(caption=None, sort_order=2_147_483_647)
+
+
 def test_delete_stored_image_is_idempotent() -> None:
     """Verify deleting a missing storage file is harmless."""
     with TemporaryDirectory() as temp_dir:

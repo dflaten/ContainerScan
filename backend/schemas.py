@@ -268,16 +268,18 @@ class ImageUpdate(BaseModel):
     """Request schema for updating mutable image metadata."""
 
     is_primary: bool | None = None
-    caption: str | None = Field(default=None, max_length=255)
-    sort_order: int = Field(ge=0)
+    caption: str | None = None
+    sort_order: int = Field(ge=0, le=2_147_483_646)
 
     @field_validator("caption")
     @classmethod
     def normalize_caption(cls, value: str | None) -> str | None:
-        """Trim image captions and collapse blanks to `None`."""
+        """Trim image captions, enforce the column limit, and collapse blanks to `None`."""
         if value is None:
             return None
         normalized = value.strip()
+        if len(normalized) > 255:
+            raise ValueError("Image captions must be 255 characters or fewer.")
         return normalized or None
 
 

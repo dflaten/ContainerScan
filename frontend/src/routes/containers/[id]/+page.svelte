@@ -5,6 +5,7 @@
   export let data;
 
   const api = createApi(fetch);
+  const MAX_IMAGE_SORT_ORDER = 2_147_483_646;
   const steps = [
     {
       eyebrow: 'Step 1',
@@ -153,9 +154,9 @@
     imageDrafts = nextDrafts;
   }
 
-  function imageDraft(image) {
+  function imageDraft(image, drafts = imageDrafts) {
     return (
-      imageDrafts[image.id] ?? {
+      drafts[image.id] ?? {
         caption: image.caption ?? '',
         sort_order: String(image.sort_order)
       }
@@ -170,11 +171,11 @@
     }
 
     const parsed = Number(trimmed);
-    return Number.isSafeInteger(parsed) ? parsed : null;
+    return Number.isSafeInteger(parsed) && parsed <= MAX_IMAGE_SORT_ORDER ? parsed : null;
   }
 
-  function isImageDirty(image) {
-    const draft = imageDrafts[image.id];
+  function isImageDirty(image, drafts = imageDrafts) {
+    const draft = drafts[image.id];
 
     if (!draft) {
       return false;
@@ -206,7 +207,7 @@
     const sortOrder = parseSortOrder(draft.sort_order);
 
     if (sortOrder === null) {
-      pageError = 'Photo order must be a whole number of 0 or greater.';
+      pageError = 'Photo order must be a whole number from 0 to 2,147,483,646.';
       return false;
     }
 
@@ -246,7 +247,7 @@
   }
 
   async function saveDirtyImages() {
-    const dirtyImages = container.images.filter(isImageDirty);
+    const dirtyImages = container.images.filter((image) => isImageDirty(image));
 
     for (const image of dirtyImages) {
       if (!(await saveImageDetails(image))) {
@@ -258,7 +259,7 @@
   }
 
   $: ensureImageDrafts(container?.images ?? []);
-  $: hasImagesToSave = container.images.length > 0 || selectedFiles.length > 0;
+  $: hasImagesToSave = (container?.images.length ?? 0) > 0 || selectedFiles.length > 0;
   $: imageActionsDisabled = activeImageAction !== null || isUploadingImages;
 
   async function handleSetPrimaryImage(image, index) {
@@ -581,7 +582,7 @@
                             <input
                               type="text"
                               maxlength="255"
-                              value={imageDraft(image).caption}
+                              value={imageDraft(image, imageDrafts).caption}
                               aria-label={`Caption for ${imageName(image, index)}`}
                               disabled={imageActionsDisabled}
                               on:input={(event) =>
@@ -595,8 +596,9 @@
                               <input
                                 type="number"
                                 min="0"
+                                max={MAX_IMAGE_SORT_ORDER}
                                 step="1"
-                                value={imageDraft(image).sort_order}
+                                value={imageDraft(image, imageDrafts).sort_order}
                                 aria-label={`Sort order for ${imageName(image, index)}`}
                                 disabled={imageActionsDisabled}
                                 on:input={(event) =>
@@ -607,7 +609,7 @@
                               type="button"
                               class="image-save-button"
                               aria-label={`Save details for ${imageName(image, index)}`}
-                              disabled={imageActionsDisabled || !isImageDirty(image)}
+                              disabled={imageActionsDisabled || !isImageDirty(image, imageDrafts)}
                               on:click={() => saveImageDetails(image)}
                             >
                               {activeImageAction?.id === image.id && activeImageAction.type === 'save'

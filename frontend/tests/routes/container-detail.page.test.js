@@ -71,6 +71,15 @@ describe('container detail route', () => {
     vi.restoreAllMocks();
   });
 
+  test('shows the load error when the container is missing', () => {
+    render(Page, {
+      data: buildData({ container: null, containerError: 'Container not found.' })
+    });
+
+    expect(screen.getByText('Could not load container')).toBeInTheDocument();
+    expect(screen.getByText('Container not found.')).toBeInTheDocument();
+  });
+
   test('saves metadata updates through the container api and advances quietly', async () => {
     mocks.api.updateContainer.mockResolvedValue(
       buildContainer({
@@ -310,13 +319,18 @@ describe('container detail route', () => {
     await screen.findByLabelText('Room');
     await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
 
+    const saveButton = screen.getByRole('button', { name: /save details for inside bin/i });
+    expect(saveButton).toBeDisabled();
+
     await fireEvent.input(screen.getByLabelText('Caption for Inside bin'), {
       target: { value: 'Lid open' }
     });
     await fireEvent.input(screen.getByLabelText('Sort order for Inside bin'), {
       target: { value: '0' }
     });
-    await fireEvent.click(screen.getByRole('button', { name: /save details for inside bin/i }));
+
+    expect(saveButton).not.toBeDisabled();
+    await fireEvent.click(saveButton);
 
     await waitFor(() => {
       expect(mocks.api.updateImage).toHaveBeenCalledWith('image-2', {
@@ -344,7 +358,29 @@ describe('container detail route', () => {
     await fireEvent.click(screen.getByRole('button', { name: /save details for front shelf/i }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Photo order must be a whole number of 0 or greater.'
+      'Photo order must be a whole number from 0 to 2,147,483,646.'
+    );
+    expect(mocks.api.updateImage).not.toHaveBeenCalled();
+  });
+
+  test('rejects a photo order outside the database integer range', async () => {
+    const container = buildContainer();
+
+    mocks.api.updateContainer.mockResolvedValue(container);
+
+    render(Page, { data: buildData({ container }) });
+
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+    await screen.findByLabelText('Room');
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+
+    await fireEvent.input(screen.getByLabelText('Sort order for Front shelf'), {
+      target: { value: '2147483647' }
+    });
+    await fireEvent.click(screen.getByRole('button', { name: /save details for front shelf/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Photo order must be a whole number from 0 to 2,147,483,646.'
     );
     expect(mocks.api.updateImage).not.toHaveBeenCalled();
   });
@@ -378,6 +414,28 @@ describe('container detail route', () => {
     await waitFor(() => {
       expect(mocks.goto).toHaveBeenCalledWith('/');
     });
+  });
+
+  test('does not finish when pending photo details fail to save', async () => {
+    const container = buildContainer();
+
+    mocks.api.updateContainer.mockResolvedValue(container);
+    mocks.api.updateImage.mockRejectedValue({ detail: 'Unable to save photo details.' });
+
+    render(Page, { data: buildData({ container }) });
+
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+    await screen.findByLabelText('Room');
+    await fireEvent.click(screen.getByRole('button', { name: /^next$/i }));
+
+    await fireEvent.input(screen.getByLabelText('Caption for Front shelf'), {
+      target: { value: 'Open shelf' }
+    });
+    await fireEvent.click(screen.getByRole('button', { name: /^finish$/i }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Unable to save photo details.');
+    expect(mocks.goto).not.toHaveBeenCalled();
+    expect(mocks.api.uploadContainerImages).not.toHaveBeenCalled();
   });
 
   test('saves pending photo details before leaving the images step', async () => {
