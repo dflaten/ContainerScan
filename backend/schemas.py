@@ -268,7 +268,7 @@ class ImageUpdate(BaseModel):
     """Request schema for updating mutable image metadata."""
 
     is_primary: bool | None = None
-    caption: str | None = None
+    caption: str | None = Field(default=None, max_length=255)
     sort_order: int = Field(ge=0)
 
     @field_validator("caption")

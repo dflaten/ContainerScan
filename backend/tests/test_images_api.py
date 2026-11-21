@@ -9,7 +9,9 @@ from tempfile import SpooledTemporaryFile
 from tempfile import TemporaryDirectory
 import uuid
 
+import pytest
 from fastapi import HTTPException, UploadFile
+from pydantic import ValidationError
 from starlette.datastructures import UploadFile as StarletteUploadFile
 from sqlalchemy.exc import IntegrityError
 
@@ -333,6 +335,12 @@ def test_first_uploaded_image_becomes_primary_for_a_container() -> None:
 
     assert created[0].is_primary is True
     assert created[0].caption == "Outside shelf view"
+
+
+def test_image_update_rejects_overlong_caption() -> None:
+    """Verify captions cannot exceed the database column length."""
+    with pytest.raises(ValidationError):
+        ImageUpdate(caption="x" * 256, sort_order=0)
 
 
 def test_delete_stored_image_is_idempotent() -> None:
