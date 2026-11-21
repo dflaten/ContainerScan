@@ -1,5 +1,5 @@
 <script>
-  import { createApi } from '$lib/api';
+  import { createApi } from '#lib/api';
 
   export let data;
 

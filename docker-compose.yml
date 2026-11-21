@@ -2,14 +2,14 @@ name: containerscan
 
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:19-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${CONTAINERSCAN_DB_NAME:-containerscan}
       POSTGRES_USER: ${CONTAINERSCAN_DB_USER:-cs_user}
       POSTGRES_PASSWORD: ${CONTAINERSCAN_DB_PASSWORD:-cs_pass}
     volumes:
-      - ${CONTAINERSCAN_DB_DATA_LOCATION:-db_data}:/var/lib/postgresql/data
+      - ${CONTAINERSCAN_DB_DATA_LOCATION:-db_data}:/var/lib/postgresql
     healthcheck:
       test:
         [
